@@ -48,13 +48,11 @@ set(CORE_SOURCES
 set(BLOCKCHAIN_SOURCES
     src/blockchain/block.cpp
     src/blockchain/blockchain.cpp
-    src/blockchain/chain.cpp
     src/blockchain/merkle.cpp
 )
 
 # Source files - Consensus
 set(CONSENSUS_SOURCES
-    src/consensus/pow.cpp
     src/consensus/difficulty.cpp
     src/consensus/validation.cpp
 )
