@@ -176,14 +176,71 @@
   - ✅ IPv4 support (IPv6-ready structure)
   - ✅ Network address validation
 
-### 📋 Planned (Phase 5+)
+### ✅ Implemented (Phase 5 - Wallet)
 
-- HD wallet (BIP32/39/44)
+- **Key Management**
+  - ✅ Encrypted key storage with AES-256-CBC
+  - ✅ Key store interface (BasicKeyStore, CryptoKeyStore)
+  - ✅ PBKDF2 key derivation (100,000 iterations)
+  - ✅ Wallet encryption with passphrase
+  - ✅ Lock/unlock functionality
+  - ✅ Private key import/export
+
+- **HD Wallet (BIP32)**
+  - ✅ Master key generation from seed
+  - ✅ Hierarchical deterministic key derivation
+  - ✅ Child key derivation (hardened and normal)
+  - ✅ Extended key serialization (xprv/xpub)
+  - ✅ Derivation path parsing (m/44'/0'/0'/0/0)
+  - ✅ Public key derivation from extended keys
+
+- **BIP39 Mnemonic**
+  - ✅ Mnemonic generation from entropy (12/15/18/21/24 words)
+  - ✅ Random mnemonic generation
+  - ✅ Mnemonic to seed conversion (PBKDF2-HMAC-SHA512)
+  - ✅ Mnemonic validation with checksum
+  - ✅ Passphrase support
+
+- **BIP44 Account Structure**
+  - ✅ Standard derivation path (m/44'/0'/account'/change/index)
+  - ✅ Account derivation
+  - ✅ Change address management
+  - ✅ Address index tracking
+
+- **Address Management**
+  - ✅ P2PKH address generation with 'D' prefix
+  - ✅ P2SH address support
+  - ✅ Address book with labels and metadata
+  - ✅ Address validation and parsing
+  - ✅ Receiving and change address separation
+  - ✅ Address derivation tracking
+
+- **Transaction Building**
+  - ✅ Transaction builder with fluent API
+  - ✅ Coin selection (largest-first strategy)
+  - ✅ Automatic fee calculation
+  - ✅ Change output handling
+  - ✅ Transaction signing with private keys
+  - ✅ Multi-input/output support
+  - ✅ UTXO management
+
+- **Wallet Core**
+  - ✅ Comprehensive wallet class
+  - ✅ Balance tracking (confirmed, unconfirmed, available)
+  - ✅ Transaction creation and signing
+  - ✅ UTXO tracking and management
+  - ✅ Transaction history
+  - ✅ Wallet persistence (save/load)
+  - ✅ Thread-safe operations
+
+### 📋 Planned (Phase 6+)
+
 - JSON-RPC API
 - REST API
 - Storage layer (LevelDB/RocksDB)
 - Comprehensive test suite
 - Mining pool protocol
+- SPV client support
 
 ---
 
@@ -197,7 +254,7 @@ DinariBlockchain/
 │   ├── core/           # Transactions, UTXO, scripts, mempool ✅
 │   ├── crypto/         # Cryptographic primitives ✅
 │   ├── network/        # P2P networking ✅ (protocol, peers, messages, node)
-│   ├── wallet/         # Wallet and key management
+│   ├── wallet/         # Wallet and key management ✅ (HD wallet, BIP32/39/44)
 │   ├── mining/         # Mining functionality
 │   ├── rpc/            # RPC server
 │   ├── storage/        # Database abstraction
@@ -214,8 +271,8 @@ DinariBlockchain/
 
 ## Development Status
 
-**Current Phase:** Phase 4 (P2P Networking) - ✅ Complete
-**Next Phase:** Phase 5 (Wallet) - 🚧 Ready to Start
+**Current Phase:** Phase 5 (Wallet) - ✅ Complete
+**Next Phase:** Phase 6 (APIs) - 🚧 Ready to Start
 
 ### Roadmap
 
@@ -223,7 +280,7 @@ DinariBlockchain/
 - [x] **Phase 2:** Core Blockchain (Transactions, Blocks, UTXO) ✅
 - [x] **Phase 3:** Consensus & Blockchain (Difficulty, Validation, Chain Management) ✅
 - [x] **Phase 4:** Networking (P2P, Block Propagation, Peer Management) ✅
-- [ ] **Phase 5:** Wallet (HD Wallet, Key Management, Transaction Creation)
+- [x] **Phase 5:** Wallet (HD Wallet, Key Management, Transaction Creation) ✅
 - [ ] **Phase 6:** APIs (RPC, REST, CLI)
 - [ ] **Phase 7:** Testing & Security (Unit Tests, Integration Tests, Security Audit)
 - [ ] **Phase 8:** Advanced Features (Mining Pools, SPV, KYC Integration)
