@@ -108,6 +108,7 @@ set(UTIL_SOURCES
     src/util/config.cpp
     src/util/serialize.cpp
     src/util/time.cpp
+    src/util/security.cpp
 )
 
 # KYC sources (optional)

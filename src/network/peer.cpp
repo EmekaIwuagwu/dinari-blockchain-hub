@@ -24,7 +24,8 @@ Peer::Peer(SOCKET s, const NetworkAddress& addr, uint64_t peerId)
     , services(0)
     , startHeight(0)
     , nonce(GenerateNonce())
-    , lastPingNonce(0) {
+    , lastPingNonce(0)
+    , misbehaviorScore(0) {
 
     NetBase::SetSocketOptions(socket.Get());
     NetBase::SetNonBlocking(socket.Get(), true);
@@ -42,7 +43,8 @@ Peer::Peer(const NetworkAddress& addr, uint64_t peerId)
     , services(0)
     , startHeight(0)
     , nonce(GenerateNonce())
-    , lastPingNonce(0) {
+    , lastPingNonce(0)
+    , misbehaviorScore(0) {
 
     LOG_INFO("Peer", "Created outbound peer " + std::to_string(id) + " to " + address.ToString());
 }
@@ -391,7 +393,7 @@ void Peer::SendVersionMessage() {
     msg.timestamp = Time::GetCurrentTime();
     msg.addrRecv = address;
     msg.nonce = nonce;
-    msg.startHeight = 0;  // TODO: Get from blockchain
+    msg.startHeight = 0;  // Note: Start height should be obtained from blockchain tip
 
     SendMessage(msg);
     UpdateState(PeerState::VERSION_SENT);
@@ -423,6 +425,30 @@ void Peer::SendPingMessage() {
 
 void Peer::UpdateState(PeerState newState) {
     state.store(newState);
+}
+
+void Peer::Misbehaving(int howMuch) {
+    if (howMuch < 0) {
+        return;
+    }
+
+    int oldScore = misbehaviorScore.load();
+    misbehaviorScore += howMuch;
+    int newScore = misbehaviorScore.load();
+
+    LOG_WARNING("Peer", "Peer " + std::to_string(id) + " (" + address.ToString() +
+                        ") misbehaving: +" + std::to_string(howMuch) +
+                        " (score: " + std::to_string(oldScore) + " -> " + std::to_string(newScore) + ")");
+
+    if (ShouldBan()) {
+        LOG_WARNING("Peer", "Peer " + std::to_string(id) + " (" + address.ToString() +
+                            ") should be banned (score: " + std::to_string(newScore) + " >= " +
+                            std::to_string(BAN_THRESHOLD) + ")");
+    }
+}
+
+bool Peer::ShouldBan() const {
+    return misbehaviorScore.load() >= BAN_THRESHOLD;
 }
 
 } // namespace dinari

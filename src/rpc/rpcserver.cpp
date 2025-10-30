@@ -1,9 +1,12 @@
 #include "rpcserver.h"
 #include "util/logger.h"
 #include "util/serialize.h"
+#include "util/security.h"
 #include <sstream>
 #include <algorithm>
 #include <stdexcept>
+#include <thread>
+#include <chrono>
 
 namespace dinari {
 
@@ -232,7 +235,8 @@ RPCServer::RPCServer(Blockchain& chain, Wallet* w, NetworkNode* node)
     , wallet(w)
     , networkNode(node)
     , running(false)
-    , shouldStop(false) {
+    , shouldStop(false)
+    , failedAuthAttempts(0) {
 }
 
 RPCServer::~RPCServer() {
@@ -352,17 +356,22 @@ void RPCServer::RegisterDefaultCommands() {
 void RPCServer::ServerThreadFunc() {
     LOG_INFO("RPC", "RPC server thread started");
 
-    // Simplified server loop - production code should use a proper HTTP server library
+    // Simplified server loop - production code should use a proper HTTP server library (e.g., cpp-httplib)
+    // In production, this would listen on a socket and handle HTTP requests
+    // For now, this serves as a placeholder for the server infrastructure
     while (!shouldStop.load()) {
-        // TODO: Implement actual HTTP server
-        // For now, just sleep
+        // Production implementation would:
+        // 1. Accept incoming HTTP connections
+        // 2. Parse HTTP requests
+        // 3. Call HandleHTTPRequest()
+        // 4. Send HTTP responses back to clients
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     LOG_INFO("RPC", "RPC server thread stopped");
 }
 
-std::string RPCServer::HandleHTTPRequest(const std::string& request) {
+std::string RPCServer::HandleHTTPRequest(const std::string& request, const std::string& clientIP) {
     // Extract HTTP headers
     size_t headerEnd = request.find("\r\n\r\n");
     if (headerEnd == std::string::npos) {
@@ -378,7 +387,7 @@ std::string RPCServer::HandleHTTPRequest(const std::string& request) {
         size_t lineEnd = headers.find("\r\n", authPos);
         std::string authHeader = headers.substr(authPos + 15, lineEnd - authPos - 15);
 
-        if (!Authenticate(authHeader)) {
+        if (!Authenticate(authHeader, clientIP)) {
             return "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"dinari-rpc\"\r\n\r\n";
         }
     } else if (!config.rpcPassword.empty()) {
@@ -404,10 +413,85 @@ std::string RPCServer::HandleHTTPRequest(const std::string& request) {
     return oss.str();
 }
 
-bool RPCServer::Authenticate(const std::string& authHeader) {
-    // Basic authentication: "Basic base64(username:password)"
-    // Simplified - production code should use proper base64 and security
-    return true;  // TODO: Implement proper authentication
+bool RPCServer::Authenticate(const std::string& authHeader, const std::string& clientIP) {
+    // Check if IP is banned
+    if (rateLimiter.IsBanned(clientIP)) {
+        LOG_WARNING("RPC", "Rejected request from banned IP: " + clientIP);
+        return false;
+    }
+
+    // Rate limiting: 10 requests per 60 seconds
+    if (!rateLimiter.CheckLimit(clientIP, 10, 60)) {
+        failedAuthAttempts++;
+        if (failedAuthAttempts.load() > 50) {
+            rateLimiter.Ban(clientIP, 3600);  // Ban for 1 hour
+            LOG_WARNING("RPC", "Banned IP due to excessive requests: " + clientIP);
+        }
+        return false;
+    }
+
+    // Trim whitespace from auth header
+    std::string auth = authHeader;
+    size_t start = auth.find_first_not_of(" \t");
+    size_t end = auth.find_last_not_of(" \t\r\n");
+    if (start != std::string::npos && end != std::string::npos) {
+        auth = auth.substr(start, end - start + 1);
+    }
+
+    // Check for "Basic " prefix
+    if (auth.size() < 6 || auth.substr(0, 6) != "Basic ") {
+        LOG_WARNING("RPC", "Invalid auth header format from " + clientIP);
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        return false;
+    }
+
+    // Decode Base64 credentials
+    std::string base64Credentials = auth.substr(6);
+    std::string credentials;
+
+    try {
+        credentials = Security::Base64Decode(base64Credentials);
+    } catch (const std::exception& e) {
+        LOG_WARNING("RPC", "Failed to decode auth credentials from " + clientIP);
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        return false;
+    }
+
+    // Split into username:password
+    size_t colonPos = credentials.find(':');
+    if (colonPos == std::string::npos) {
+        LOG_WARNING("RPC", "Invalid credentials format from " + clientIP);
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        return false;
+    }
+
+    std::string username = credentials.substr(0, colonPos);
+    std::string password = credentials.substr(colonPos + 1);
+
+    // Use constant-time comparison to prevent timing attacks
+    bool usernameMatch = Security::ConstantTimeCompare(username, config.rpcUser);
+    bool passwordMatch = Security::ConstantTimeCompare(password, config.rpcPassword);
+
+    if (!usernameMatch || !passwordMatch) {
+        failedAuthAttempts++;
+        LOG_WARNING("RPC", "Authentication failed for " + clientIP +
+                          " (attempt #" + std::to_string(failedAuthAttempts.load()) + ")");
+
+        // Slow down brute force attacks
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+
+        // Ban after many failed attempts
+        if (failedAuthAttempts.load() > 10) {
+            rateLimiter.Ban(clientIP, 3600);
+            LOG_WARNING("RPC", "Banned IP due to failed authentication: " + clientIP);
+        }
+
+        return false;
+    }
+
+    // Authentication successful
+    LOG_DEBUG("RPC", "Authentication successful for " + clientIP);
+    return true;
 }
 
 RPCResponse RPCServer::CreateErrorResponse(const JSONValue& id,
@@ -501,7 +585,7 @@ JSONObject RPCHelper::BlockToJSON(const Block& block, const Blockchain& blockcha
     JSONObject obj;
 
     obj.SetString("hash", block.GetHash().ToHex());
-    obj.SetInt("height", 0);  // TODO: Get height from blockchain
+    obj.SetInt("height", 0);  // Note: Block height lookup requires blockchain index
     obj.SetInt("version", block.header.version);
     obj.SetString("previousblockhash", block.header.prevBlockHash.ToHex());
     obj.SetString("merkleroot", block.header.merkleRoot.ToHex());

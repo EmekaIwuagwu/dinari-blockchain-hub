@@ -182,6 +182,13 @@ public:
     bool Unlock(const std::string& passphrase);
 
     /**
+     * @brief Unlock wallet with timeout (auto-lock after specified seconds)
+     * @param passphrase Wallet passphrase
+     * @param timeoutSeconds Seconds until auto-lock (0 = no auto-lock)
+     */
+    bool UnlockWithTimeout(const std::string& passphrase, uint32_t timeoutSeconds);
+
+    /**
      * @brief Check if wallet is locked
      */
     bool IsLocked() const;
@@ -311,6 +318,12 @@ private:
 
     // Synchronization
     mutable std::mutex mutex;
+
+    // Auto-lock functionality
+    Timestamp unlockUntil;
+    std::atomic<bool> autoLockRunning;
+    std::thread autoLockThread;
+    void AutoLockThreadFunc();
 
     // Helper methods
     bool DeriveNextAddress(bool isChange, Address& addr, ExtendedKey& key);

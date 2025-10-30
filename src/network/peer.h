@@ -170,6 +170,22 @@ public:
      */
     std::vector<std::unique_ptr<NetworkMessage>> FetchMessages();
 
+    /**
+     * @brief Increase misbehavior score
+     * @param howMuch Amount to increase score
+     */
+    void Misbehaving(int howMuch);
+
+    /**
+     * @brief Check if peer should be banned
+     */
+    bool ShouldBan() const;
+
+    /**
+     * @brief Get misbehavior score
+     */
+    int GetMisbehaviorScore() const { return misbehaviorScore.load(); }
+
 private:
     // Connection info
     uint64_t id;
@@ -198,6 +214,10 @@ private:
 
     // Ping/pong
     uint64_t lastPingNonce;
+
+    // Misbehavior tracking
+    std::atomic<int> misbehaviorScore;
+    static constexpr int BAN_THRESHOLD = 100;
 
     // Internal methods
     bool SendRaw(const bytes& data);

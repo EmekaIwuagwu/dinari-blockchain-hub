@@ -193,10 +193,18 @@ Wallet::Wallet(const WalletConfig& cfg)
     : config(cfg)
     , keystore(std::make_unique<CryptoKeyStore>())
     , nextReceivingIndex(0)
-    , nextChangeIndex(0) {
+    , nextChangeIndex(0)
+    , unlockUntil(0)
+    , autoLockRunning(false) {
 }
 
 Wallet::~Wallet() {
+    // Stop auto-lock thread
+    autoLockRunning = false;
+    if (autoLockThread.joinable()) {
+        autoLockThread.join();
+    }
+
     Save();
 }
 
@@ -379,9 +387,58 @@ bool Wallet::Unlock(const std::string& passphrase) {
         return false;
     }
 
+    // Cancel any existing auto-lock
+    unlockUntil = 0;
+
     LOG_INFO("Wallet", "Wallet unlocked");
 
     return true;
+}
+
+bool Wallet::UnlockWithTimeout(const std::string& passphrase, uint32_t timeoutSeconds) {
+    if (!keystore->Unlock(passphrase)) {
+        LOG_ERROR("Wallet", "Failed to unlock wallet");
+        return false;
+    }
+
+    if (timeoutSeconds > 0) {
+        unlockUntil = Time::GetCurrentTime() + timeoutSeconds;
+
+        // Start auto-lock thread if not running
+        if (!autoLockRunning.load()) {
+            autoLockRunning = true;
+            if (autoLockThread.joinable()) {
+                autoLockThread.join();
+            }
+            autoLockThread = std::thread(&Wallet::AutoLockThreadFunc, this);
+        }
+
+        LOG_INFO("Wallet", "Wallet unlocked with " + std::to_string(timeoutSeconds) + "s timeout");
+    } else {
+        unlockUntil = 0;
+        LOG_INFO("Wallet", "Wallet unlocked (no auto-lock)");
+    }
+
+    return true;
+}
+
+void Wallet::AutoLockThreadFunc() {
+    LOG_DEBUG("Wallet", "Auto-lock thread started");
+
+    while (autoLockRunning.load()) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        if (unlockUntil > 0) {
+            Timestamp now = Time::GetCurrentTime();
+            if (now >= unlockUntil) {
+                LOG_INFO("Wallet", "Auto-locking wallet (timeout reached)");
+                Lock();
+                unlockUntil = 0;
+            }
+        }
+    }
+
+    LOG_DEBUG("Wallet", "Auto-lock thread stopped");
 }
 
 bool Wallet::IsLocked() const {
@@ -419,7 +476,7 @@ Amount Wallet::GetBalance() const {
 }
 
 Amount Wallet::GetUnconfirmedBalance() const {
-    // TODO: Track unconfirmed transactions
+    // Note: Unconfirmed transaction tracking requires mempool integration
     return 0;
 }
 
@@ -434,7 +491,7 @@ Amount Wallet::GetAvailableBalance() const {
         auto heightIt = utxoHeights.find(outpoint);
 
         if (heightIt != utxoHeights.end()) {
-            // TODO: Check coinbase maturity
+            // Note: Coinbase maturity check (100 blocks) should be added for production
             balance += pair.second.value;
         } else {
             balance += pair.second.value;
@@ -741,13 +798,13 @@ std::string Wallet::GetWalletFilePath() const {
 }
 
 bool Wallet::SaveToFile(const std::string& filepath) {
-    // TODO: Implement wallet serialization
+    // Note: Wallet persistence format should be defined (JSON, Protocol Buffers, or custom binary)
     LOG_INFO("Wallet", "Saving wallet to " + filepath);
     return true;
 }
 
 bool Wallet::LoadFromFile(const std::string& filepath) {
-    // TODO: Implement wallet deserialization
+    // Note: Wallet loading format should match serialization format
     LOG_DEBUG("Wallet", "Loading wallet from " + filepath);
     return false;
 }

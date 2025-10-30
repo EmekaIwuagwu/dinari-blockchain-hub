@@ -1,8 +1,9 @@
 #include "keystore.h"
 #include "crypto/aes.h"
 #include "util/logger.h"
+#include "util/security.h"
 #include <algorithm>
-#include <random>
+#include <openssl/rand.h>
 
 namespace dinari {
 
@@ -123,13 +124,11 @@ bool CryptoKeyStore::EncryptWallet(const std::string& passphrase) {
 
     std::lock_guard<std::mutex> lock(mutex);
 
-    // Generate random salt
-    masterKeySalt.resize(32);
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 255);
-    for (auto& byte : masterKeySalt) {
-        byte = static_cast<uint8_t>(dis(gen));
+    // Generate cryptographically secure random salt using OpenSSL
+    masterKeySalt = Security::SecureRandomBytes(32);
+    if (masterKeySalt.empty() || masterKeySalt.size() != 32) {
+        LOG_ERROR("KeyStore", "Failed to generate secure random salt");
+        return false;
     }
 
     // Derive master key
@@ -242,12 +241,11 @@ bool CryptoKeyStore::ChangePassphrase(const std::string& oldPassphrase, const st
 
     std::lock_guard<std::mutex> lock(mutex);
 
-    // Generate new salt
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 255);
-    for (auto& byte : masterKeySalt) {
-        byte = static_cast<uint8_t>(dis(gen));
+    // Generate new cryptographically secure random salt using OpenSSL
+    masterKeySalt = Security::SecureRandomBytes(32);
+    if (masterKeySalt.empty() || masterKeySalt.size() != 32) {
+        LOG_ERROR("KeyStore", "Failed to generate secure random salt");
+        return false;
     }
 
     // Derive new master key
@@ -354,13 +352,11 @@ bytes CryptoKeyStore::EncryptKey(const Hash256& privKey) const {
     // Convert Hash256 to bytes
     bytes plaintext(privKey.begin(), privKey.end());
 
-    // Generate random IV
-    bytes iv(16);
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 255);
-    for (auto& byte : iv) {
-        byte = static_cast<uint8_t>(dis(gen));
+    // Generate cryptographically secure random IV using OpenSSL
+    bytes iv = Security::SecureRandomBytes(16);
+    if (iv.empty() || iv.size() != 16) {
+        LOG_ERROR("KeyStore", "Failed to generate secure random IV");
+        return bytes();
     }
 
     // Encrypt

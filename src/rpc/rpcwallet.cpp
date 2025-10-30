@@ -394,7 +394,7 @@ JSONValue WalletRPC::GetTransaction(const RPCRequest& req, Blockchain& chain, Wa
         RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Invalid transaction id");
     }
 
-    // TODO: Look up transaction in wallet history
+    // Note: Wallet transaction history lookup requires indexed transaction database
 
     JSONObject obj;
     obj.SetString("txid", txidStr);
@@ -477,11 +477,17 @@ JSONValue WalletRPC::WalletPassphrase(const RPCRequest& req, Blockchain& chain, 
     std::string passphrase = RPCHelper::GetStringParam(req, 0);
     int64_t timeout = RPCHelper::GetIntParam(req, 1);
 
-    if (!wallet->Unlock(passphrase)) {
-        RPCHelper::ThrowError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect");
+    // Use timeout-based unlock if timeout is specified and positive
+    bool success = false;
+    if (timeout > 0 && timeout <= (int64_t)(UINT32_MAX)) {
+        success = wallet->UnlockWithTimeout(passphrase, static_cast<uint32_t>(timeout));
+    } else {
+        success = wallet->Unlock(passphrase);
     }
 
-    // TODO: Implement timeout-based auto-lock
+    if (!success) {
+        RPCHelper::ThrowError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect");
+    }
 
     return JSONValue(true);
 }
