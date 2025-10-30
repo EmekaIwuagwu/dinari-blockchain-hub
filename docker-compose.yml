@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # Dinari Blockchain Node
+  dinari-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dinari-blockchain
+    restart: unless-stopped
+    ports:
+      - "9333:9333"   # P2P Network
+      - "9334:9334"   # RPC Server
+    volumes:
+      - dinari-data:/data/dinari
+      - ./config:/etc/dinari/config:ro
+    environment:
+      - DINARI_NETWORK=mainnet
+      - DINARI_RPC_USER=${RPC_USER:-dinariuser}
+      - DINARI_RPC_PASSWORD=${RPC_PASSWORD:-dinaripass}
+    command: [
+      "--datadir=/data/dinari",
+      "--server",
+      "--rpcuser=${RPC_USER:-dinariuser}",
+      "--rpcpassword=${RPC_PASSWORD:-dinaripass}",
+      "--rpcport=9334",
+      "--port=9333",
+      "--listen",
+      "--printtoconsole=1"
+    ]
+    networks:
+      - dinari-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # Dinari Testnet Node (optional)
+  dinari-testnet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dinari-testnet
+    restart: unless-stopped
+    ports:
+      - "19333:19333"  # P2P Network (testnet)
+      - "19334:19334"  # RPC Server (testnet)
+    volumes:
+      - dinari-testnet-data:/data/dinari
+      - ./config:/etc/dinari/config:ro
+    environment:
+      - DINARI_NETWORK=testnet
+      - DINARI_RPC_USER=${RPC_USER:-dinariuser}
+      - DINARI_RPC_PASSWORD=${RPC_PASSWORD:-dinaripass}
+    command: [
+      "--testnet",
+      "--datadir=/data/dinari",
+      "--server",
+      "--rpcuser=${RPC_USER:-dinariuser}",
+      "--rpcpassword=${RPC_PASSWORD:-dinaripass}",
+      "--rpcport=19334",
+      "--port=19333",
+      "--listen",
+      "--printtoconsole=1"
+    ]
+    networks:
+      - dinari-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    profiles:
+      - testnet
+
+  # Mining Node (optional)
+  dinari-miner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dinari-miner
+    restart: unless-stopped
+    volumes:
+      - dinari-miner-data:/data/dinari
+      - ./config:/etc/dinari/config:ro
+    environment:
+      - DINARI_NETWORK=mainnet
+      - DINARI_MINING_ADDRESS=${MINING_ADDRESS}
+      - DINARI_MINING_THREADS=${MINING_THREADS:-4}
+    command: [
+      "--datadir=/data/dinari",
+      "--mining",
+      "--miningaddress=${MINING_ADDRESS}",
+      "--miningthreads=${MINING_THREADS:-4}",
+      "--server=0",
+      "--network=0",
+      "--printtoconsole=1"
+    ]
+    networks:
+      - dinari-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    profiles:
+      - mining
+    depends_on:
+      - dinari-node
+
+networks:
+  dinari-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  dinari-data:
+    driver: local
+  dinari-testnet-data:
+    driver: local
+  dinari-miner-data:
+    driver: local
