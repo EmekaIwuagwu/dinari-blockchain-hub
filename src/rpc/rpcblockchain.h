@@ -18,6 +18,8 @@ namespace dinari {
  * - gettxout
  * - getmempoolinfo
  * - getrawmempool
+ * - getrawtransaction (Blockchain Explorer)
+ * - listblocks (Blockchain Explorer)
  */
 class BlockchainRPC {
 public:
@@ -39,6 +41,10 @@ private:
     // Mempool commands
     static JSONValue GetMempoolInfo(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
     static JSONValue GetRawMempool(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
+
+    // Blockchain Explorer commands
+    static JSONValue GetRawTransaction(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
+    static JSONValue ListBlocks(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
 
     // Utility commands
     static JSONValue Help(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
