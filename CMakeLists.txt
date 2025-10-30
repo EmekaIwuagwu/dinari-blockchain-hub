@@ -48,13 +48,11 @@ set(CORE_SOURCES
 set(BLOCKCHAIN_SOURCES
     src/blockchain/block.cpp
     src/blockchain/blockchain.cpp
-    src/blockchain/chain.cpp
     src/blockchain/merkle.cpp
 )
 
 # Source files - Consensus
 set(CONSENSUS_SOURCES
-    src/consensus/pow.cpp
     src/consensus/difficulty.cpp
     src/consensus/validation.cpp
 )
@@ -77,10 +75,12 @@ set(WALLET_SOURCES
 
 # Source files - Network
 set(NETWORK_SOURCES
-    src/network/net.cpp
     src/network/protocol.cpp
-    src/network/peer.cpp
     src/network/message.cpp
+    src/network/netbase.cpp
+    src/network/peer.cpp
+    src/network/addrman.cpp
+    src/network/node.cpp
 )
 
 # Source files - Mining
