@@ -155,6 +155,10 @@ target_link_libraries(dinari_core
 add_executable(dinarid src/main.cpp)
 target_link_libraries(dinarid PRIVATE dinari_core)
 
+# CLI executable
+add_executable(dinari-cli src/cli/dinari-cli.cpp)
+target_link_libraries(dinari-cli PRIVATE dinari_core)
+
 # Testing
 if(BUILD_TESTS)
     enable_testing()
@@ -162,7 +166,7 @@ if(BUILD_TESTS)
 endif()
 
 # Installation
-install(TARGETS dinarid DESTINATION bin)
+install(TARGETS dinarid dinari-cli DESTINATION bin)
 install(DIRECTORY include/dinari DESTINATION include)
 install(FILES config/mainnet.conf config/testnet.conf DESTINATION etc/dinari)
 

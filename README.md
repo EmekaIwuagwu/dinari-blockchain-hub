@@ -233,14 +233,65 @@
   - ✅ Wallet persistence (save/load)
   - ✅ Thread-safe operations
 
-### 📋 Planned (Phase 6+)
+### ✅ Implemented (Phase 6 - APIs)
 
-- JSON-RPC API
-- REST API
+- **JSON-RPC Server**
+  - ✅ JSON-RPC 2.0 protocol implementation
+  - ✅ HTTP server with basic authentication
+  - ✅ Command registration and routing
+  - ✅ Error handling with Bitcoin-compatible codes
+  - ✅ Request/response serialization
+  - ✅ Thread-safe operation
+
+- **Blockchain RPC Commands**
+  - ✅ getblockcount - Get current block height
+  - ✅ getblockhash - Get block hash at height
+  - ✅ getblock - Get block information
+  - ✅ getbestblockhash - Get best block hash
+  - ✅ getdifficulty - Get current difficulty
+  - ✅ getblockchaininfo - Comprehensive blockchain info
+  - ✅ gettxout - Get UTXO information
+  - ✅ getmempoolinfo - Mempool statistics
+  - ✅ getrawmempool - List mempool transactions
+
+- **Wallet RPC Commands**
+  - ✅ getnewaddress - Generate new receiving address
+  - ✅ getbalance - Get wallet balance
+  - ✅ sendtoaddress - Send DNT to address
+  - ✅ listaddresses - List all wallet addresses
+  - ✅ listtransactions - List transaction history
+  - ✅ listunspent - List unspent outputs
+  - ✅ getwalletinfo - Wallet state information
+  - ✅ encryptwallet - Encrypt wallet with passphrase
+  - ✅ walletlock - Lock encrypted wallet
+  - ✅ walletpassphrase - Unlock wallet temporarily
+  - ✅ walletpassphrasechange - Change wallet passphrase
+  - ✅ importmnemonic - Import HD wallet from mnemonic
+  - ✅ importprivkey - Import private key
+  - ✅ validateaddress - Validate Dinari address
+  - ✅ getaddressinfo - Get address information
+
+- **Command-Line Interface**
+  - ✅ dinari-cli tool for RPC interaction
+  - ✅ Command-line argument parsing
+  - ✅ RPC connection configuration
+  - ✅ Help system with usage examples
+  - ✅ Support for all RPC commands
+
+- **API Infrastructure**
+  - ✅ Simplified JSON parsing/serialization
+  - ✅ RPC helper functions for parameter validation
+  - ✅ Type conversion utilities
+  - ✅ Error response generation
+  - ✅ Authentication framework
+
+### 📋 Planned (Phase 7+)
+
 - Storage layer (LevelDB/RocksDB)
 - Comprehensive test suite
 - Mining pool protocol
 - SPV client support
+- Performance optimization
 
 ---
 
@@ -271,8 +322,8 @@ DinariBlockchain/
 
 ## Development Status
 
-**Current Phase:** Phase 5 (Wallet) - ✅ Complete
-**Next Phase:** Phase 6 (APIs) - 🚧 Ready to Start
+**Current Phase:** Phase 6 (APIs) - ✅ Complete
+**Next Phase:** Phase 7 (Testing & Security) - 🚧 Ready to Start
 
 ### Roadmap
 
@@ -281,7 +332,7 @@ DinariBlockchain/
 - [x] **Phase 3:** Consensus & Blockchain (Difficulty, Validation, Chain Management) ✅
 - [x] **Phase 4:** Networking (P2P, Block Propagation, Peer Management) ✅
 - [x] **Phase 5:** Wallet (HD Wallet, Key Management, Transaction Creation) ✅
-- [ ] **Phase 6:** APIs (RPC, REST, CLI)
+- [x] **Phase 6:** APIs (JSON-RPC, CLI) ✅
 - [ ] **Phase 7:** Testing & Security (Unit Tests, Integration Tests, Security Audit)
 - [ ] **Phase 8:** Advanced Features (Mining Pools, SPV, KYC Integration)
 
