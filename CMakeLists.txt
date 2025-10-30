@@ -75,10 +75,12 @@ set(WALLET_SOURCES
 
 # Source files - Network
 set(NETWORK_SOURCES
-    src/network/net.cpp
     src/network/protocol.cpp
-    src/network/peer.cpp
     src/network/message.cpp
+    src/network/netbase.cpp
+    src/network/peer.cpp
+    src/network/addrman.cpp
+    src/network/node.cpp
 )
 
 # Source files - Mining
