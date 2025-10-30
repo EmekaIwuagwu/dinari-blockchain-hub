@@ -1,0 +1,35 @@
+{
+  "network": "mainnet",
+  "timestamp": "2025-10-30 00:00:00 UTC - Dinari Blockchain Genesis",
+  "timestamp_unix": 1730246400,
+  "version": 1,
+  "difficulty": "0x1d00ffff",
+  "nonce": 0,
+  "coinbase": {
+    "message": "Dinari Blockchain - Building the Future of Decentralized Finance",
+    "output": {
+      "address": "D1DinariGenesisBlockAddress123456789",
+      "amount": 700000000000000,
+      "amount_unit": "DNT",
+      "amount_description": "700 Trillion DNT initial supply"
+    }
+  },
+  "merkle_root": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "notes": [
+    "The genesis block contains the entire initial supply of 700 trillion DNT",
+    "This supply will be distributed according to the tokenomics plan",
+    "Block reward halving occurs every 210,000 blocks",
+    "Target block time is 10 minutes (600 seconds)",
+    "Difficulty adjusts every 2,016 blocks"
+  ],
+  "testnet": {
+    "timestamp": "2025-10-30 00:00:00 UTC - Dinari Testnet Genesis",
+    "timestamp_unix": 1730246400,
+    "difficulty": "0x207fffff",
+    "notes": [
+      "Testnet has lower difficulty for easier testing",
+      "Testnet coins have no value"
+    ]
+  }
+}
