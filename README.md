@@ -57,13 +57,46 @@
   - ✅ Visual Studio 2022 support
   - ✅ Cross-platform considerations
 
-### 🚧 In Development (Phase 2 - Core Blockchain)
+### ✅ Implemented (Phase 2 - Core Blockchain)
 
-- Transaction structure and validation
-- Block structure and Merkle trees
-- UTXO set management
-- Blockchain data structure
-- Genesis block creation
+- **Transaction System**
+  - ✅ Complete UTXO transaction model (TxIn, TxOut, OutPoint)
+  - ✅ Transaction validation and signature verification
+  - ✅ Coinbase transaction support
+  - ✅ Transaction fee calculation
+  - ✅ Transaction builder with fluent API
+  - ✅ Block reward with halving schedule (50 DNT initial)
+
+- **UTXO Management**
+  - ✅ Thread-safe UTXO set with address indexing
+  - ✅ Coinbase maturity tracking (100 blocks)
+  - ✅ UTXO validation for transactions
+  - ✅ Coin selection algorithms (4 strategies)
+  - ✅ UTXO cache for performance
+  - ✅ Chain reorganization support
+
+- **Script System**
+  - ✅ Stack-based script execution engine
+  - ✅ Standard script types (P2PKH, P2SH, P2PK, Multisig)
+  - ✅ OpCode implementation (DUP, HASH160, CHECKSIG, etc.)
+  - ✅ Script verification and validation
+  - ✅ Signature creation and verification
+
+- **Block Structure**
+  - ✅ BlockHeader with PoW (nonce, bits, merkle root)
+  - ✅ Block validation (size, transactions, merkle root)
+  - ✅ Merkle tree implementation
+  - ✅ Genesis block creation (700T DNT)
+  - ✅ Block mining functionality
+  - ✅ BlockIndex for chain management
+
+### 🚧 In Development (Phase 3 - Consensus & Mining)
+
+- Blockchain class with chain management
+- Chain reorganization logic
+- Difficulty adjustment algorithm
+- Consensus rule enforcement
+- Full mining integration
 
 ### 📋 Planned (Phase 3+)
 
@@ -82,9 +115,9 @@
 ```
 DinariBlockchain/
 ├── src/
-│   ├── blockchain/     # Block and blockchain logic
+│   ├── blockchain/     # Block and blockchain logic ✅ (blocks, merkle)
 │   ├── consensus/      # PoW and validation
-│   ├── core/           # Transactions, UTXO, mempool
+│   ├── core/           # Transactions, UTXO, scripts ✅
 │   ├── crypto/         # Cryptographic primitives ✅
 │   ├── wallet/         # Wallet and key management
 │   ├── network/        # P2P networking
@@ -104,13 +137,13 @@ DinariBlockchain/
 
 ## Development Status
 
-**Current Phase:** Phase 1 (Foundation) - ✅ Complete
-**Next Phase:** Phase 2 (Core Blockchain) - 🚧 Starting
+**Current Phase:** Phase 2 (Core Blockchain) - ✅ Complete
+**Next Phase:** Phase 3 (Consensus & Mining) - 🚧 Ready to Start
 
 ### Roadmap
 
-- [x] **Phase 1:** Foundation (Crypto, Serialization, Utilities)
-- [ ] **Phase 2:** Core Blockchain (Transactions, Blocks, UTXO)
+- [x] **Phase 1:** Foundation (Crypto, Serialization, Utilities) ✅
+- [x] **Phase 2:** Core Blockchain (Transactions, Blocks, UTXO) ✅
 - [ ] **Phase 3:** Consensus (PoW, Difficulty, Mining)
 - [ ] **Phase 4:** Networking (P2P, Block Propagation)
 - [ ] **Phase 5:** Wallet (HD Wallet, Key Management)
