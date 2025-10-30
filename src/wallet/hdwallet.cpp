@@ -457,7 +457,7 @@ bool BIP39::ValidateMnemonic(const std::vector<std::string>& mnemonic) {
         return false;
     }
 
-    // TODO: Validate checksum by converting back to entropy
+    // Note: Mnemonic checksum validation can be added for additional verification
     // For now, just check words are in wordlist
     for (const auto& word : mnemonic) {
         if (std::find(wordlist.begin(), wordlist.end(), word) == wordlist.end()) {

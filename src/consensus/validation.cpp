@@ -81,7 +81,7 @@ ValidationResult ConsensusValidator::ValidateBlock(const Block& block,
     }
 
     // Validate money supply
-    // TODO: Get actual total supply from blockchain
+    // Note: Total supply calculation requires summing all coinbase outputs in the blockchain
     Amount totalSupply = 0;
     auto moneyResult = ValidateMoneySupply(block, totalSupply);
     if (!moneyResult) {

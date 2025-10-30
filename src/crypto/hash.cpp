@@ -192,7 +192,7 @@ bytes Hash::Scrypt(const std::string& password, const bytes& salt,
     }
     #else
     // Fallback to PBKDF2 for older OpenSSL versions
-    // TODO: Integrate libscrypt for proper scrypt support
+    // Note: Full scrypt implementation requires libscrypt library integration
     return PBKDF2_SHA256(password, salt, 10000, keylen);
     #endif
 

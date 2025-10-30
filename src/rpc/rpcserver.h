@@ -5,6 +5,7 @@
 #include "blockchain/blockchain.h"
 #include "wallet/wallet.h"
 #include "network/node.h"
+#include "util/security.h"
 #include <string>
 #include <map>
 #include <functional>
@@ -275,6 +276,10 @@ private:
     std::atomic<bool> shouldStop;
     std::thread serverThread;
 
+    // Rate limiting
+    RateLimiter rateLimiter;
+    std::atomic<size_t> failedAuthAttempts;
+
     // Initialize command registry
     void RegisterDefaultCommands();
 
@@ -282,10 +287,10 @@ private:
     void ServerThreadFunc();
 
     // Handle HTTP request
-    std::string HandleHTTPRequest(const std::string& request);
+    std::string HandleHTTPRequest(const std::string& request, const std::string& clientIP);
 
     // Authenticate request
-    bool Authenticate(const std::string& authHeader);
+    bool Authenticate(const std::string& authHeader, const std::string& clientIP);
 
     // Helper to create error response
     static RPCResponse CreateErrorResponse(const JSONValue& id,

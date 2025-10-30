@@ -130,6 +130,67 @@ inline std::string FormatAmount(Amount amount) {
     return std::to_string(dnt) + " DNT";
 }
 
+// Safe arithmetic operations with overflow protection
+inline bool SafeAdd(Amount a, Amount b, Amount& result) {
+    // Check for negative values
+    if (a < 0 || b < 0) {
+        return false;
+    }
+
+    // Check if either value exceeds MAX_MONEY
+    if (a > MAX_MONEY || b > MAX_MONEY) {
+        return false;
+    }
+
+    // Check for overflow
+    if (a > MAX_MONEY - b) {
+        return false;
+    }
+
+    result = a + b;
+
+    // Final range check
+    return MoneyRange(result);
+}
+
+inline bool SafeSub(Amount a, Amount b, Amount& result) {
+    // Check for negative values
+    if (a < 0 || b < 0) {
+        return false;
+    }
+
+    // Check if subtraction would be negative
+    if (a < b) {
+        return false;
+    }
+
+    result = a - b;
+    return true;
+}
+
+inline bool SafeMul(Amount a, int64_t multiplier, Amount& result) {
+    // Check for negative values
+    if (a < 0 || multiplier < 0) {
+        return false;
+    }
+
+    // Check for zero
+    if (a == 0 || multiplier == 0) {
+        result = 0;
+        return true;
+    }
+
+    // Check if multiplication would exceed MAX_MONEY
+    if (a > MAX_MONEY / multiplier) {
+        return false;
+    }
+
+    result = a * multiplier;
+
+    // Final range check
+    return MoneyRange(result);
+}
+
 } // namespace dinari
 
 #endif // DINARI_TYPES_H

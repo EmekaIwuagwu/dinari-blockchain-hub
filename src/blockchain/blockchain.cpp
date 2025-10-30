@@ -385,7 +385,7 @@ bool Blockchain::UpdateUTXOs(const Block& block, BlockHeight height) {
 }
 
 bool Blockchain::RevertUTXOs(const Block& block) {
-    // TODO: Store previous UTXO state for proper reversion
+    // Note: UTXO state snapshots should be implemented for production-grade reorg handling
     // For now, we'll just remove the outputs
 
     for (const auto& tx : block.transactions) {

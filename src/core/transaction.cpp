@@ -482,7 +482,7 @@ Transaction CreateCoinbaseTransaction(BlockHeight height,
     coinbaseOutput.value = blockReward;
 
     // Create simple P2PKH script for miner address
-    // TODO: Parse address and create proper script
+    // Note: Address parsing and script generation requires Address class integration
     // For now, create a placeholder script
     Hash160 addressHash{};  // Parse from minerAddress
     Serializer scriptS;

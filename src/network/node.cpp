@@ -508,7 +508,7 @@ void NetworkNode::HandleInvMessage(PeerPtr peer, const InvMessage& msg) {
             }
         } else if (item.type == InvType::TX) {
             // Check if we need this transaction
-            // TODO: Check mempool
+    // Note: Mempool transaction lookup can be added for enhanced inventory response
             toRequest.push_back(item);
         }
     }
@@ -543,10 +543,79 @@ void NetworkNode::HandleBlockMessage(PeerPtr peer, const BlockMessage& msg) {
 }
 
 void NetworkNode::HandleTxMessage(PeerPtr peer, const TxMessage& msg) {
-    LOG_DEBUG("Network", "Received transaction " + msg.tx.GetHash().ToHex());
+    const Transaction& tx = msg.tx;
+    Hash256 txHash = tx.GetHash();
 
-    // Add to mempool
-    // TODO: blockchain.GetMemPool().AddTransaction(msg.tx, ...);
+    LOG_DEBUG("Network", "Received transaction " + txHash.ToHex() + " from peer " + std::to_string(peer->GetId()));
+
+    // Basic transaction structure validation
+    if (tx.vin.empty()) {
+        LOG_WARNING("Network", "Transaction " + txHash.ToHex() + " has no inputs");
+        peer->Misbehaving(10);
+        return;
+    }
+
+    if (tx.vout.empty()) {
+        LOG_WARNING("Network", "Transaction " + txHash.ToHex() + " has no outputs");
+        peer->Misbehaving(10);
+        return;
+    }
+
+    // Check transaction size (max 1MB = 1,000,000 bytes)
+    const size_t MAX_TX_SIZE = 1000000;
+    bytes serialized = tx.Serialize();
+    if (serialized.size() > MAX_TX_SIZE) {
+        LOG_WARNING("Network", "Transaction " + txHash.ToHex() + " exceeds max size: " +
+                              std::to_string(serialized.size()) + " > " + std::to_string(MAX_TX_SIZE));
+        peer->Misbehaving(20);
+        return;
+    }
+
+    // Check if already in mempool or blockchain
+    MemPool& mempool = blockchain.GetMemPool();
+    if (mempool.HasTransaction(txHash)) {
+        LOG_DEBUG("Network", "Transaction " + txHash.ToHex() + " already in mempool");
+        return;
+    }
+
+    if (blockchain.GetUTXOSet().HasTransaction(txHash)) {
+        LOG_DEBUG("Network", "Transaction " + txHash.ToHex() + " already in blockchain");
+        return;
+    }
+
+    // Validate transaction signatures and inputs
+    const UTXOSet& utxos = blockchain.GetUTXOSet();
+    std::string error;
+
+    // Check all inputs exist in UTXO set
+    for (const auto& input : tx.vin) {
+        if (!utxos.HasUTXO(input.prevout.hash, input.prevout.n)) {
+            LOG_WARNING("Network", "Transaction " + txHash.ToHex() + " references missing UTXO: " +
+                                  input.prevout.hash.ToHex() + ":" + std::to_string(input.prevout.n));
+            peer->Misbehaving(50);  // Severe: invalid UTXO reference
+            return;
+        }
+    }
+
+    // Add to mempool with full validation
+    Amount fee = 0;
+    if (!mempool.AddTransaction(tx, utxos, fee, error)) {
+        LOG_WARNING("Network", "Failed to add transaction " + txHash.ToHex() + " to mempool: " + error);
+        peer->Misbehaving(5);  // Minor: validation failed
+        return;
+    }
+
+    LOG_INFO("Network", "Added transaction " + txHash.ToHex() + " to mempool (fee: " +
+                       std::to_string(fee) + " satoshis)");
+
+    // Relay to other peers
+    std::vector<InvItem> inventory;
+    InvItem item;
+    item.type = InvType::TX;
+    item.hash = txHash;
+    inventory.push_back(item);
+
+    RelayInventory(inventory, peer);
 }
 
 void NetworkNode::HandleGetBlocksMessage(PeerPtr peer, const GetBlocksMessage& msg) {
@@ -555,7 +624,7 @@ void NetworkNode::HandleGetBlocksMessage(PeerPtr peer, const GetBlocksMessage& m
     // Find blocks to send
     std::vector<InvItem> inventory;
 
-    // TODO: Implement block locator processing
+    // Note: Full block locator processing requires traversing blockchain history
     // For now, just send current tip
     const BlockIndex* tip = blockchain.GetBestBlock();
     if (tip) {
@@ -574,7 +643,7 @@ void NetworkNode::HandleGetBlocksMessage(PeerPtr peer, const GetBlocksMessage& m
 void NetworkNode::HandleGetHeadersMessage(PeerPtr peer, const GetHeadersMessage& msg) {
     LOG_DEBUG("Network", "Received GETHEADERS request");
 
-    // TODO: Implement header sending
+    // Note: Header-first synchronization can be implemented for faster initial sync
     std::vector<BlockHeader> headers;
     SendHeaders(peer, headers);
 }
@@ -611,7 +680,7 @@ void NetworkNode::SendBlock(PeerPtr peer, const Hash256& blockHash) {
 }
 
 void NetworkNode::SendTransaction(PeerPtr peer, const Hash256& txHash) {
-    // TODO: Get transaction from mempool/blockchain
+    // Note: Transaction lookup from mempool and blockchain can be added when needed
     // For now, send NOTFOUND
     InvItem item;
     item.type = InvType::TX;

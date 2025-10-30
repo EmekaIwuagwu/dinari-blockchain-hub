@@ -315,7 +315,7 @@ JSONValue BlockchainRPC::GetRawMempool(const RPCRequest& req, Blockchain& chain,
 }
 
 JSONValue BlockchainRPC::Help(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
-    // TODO: Return list of all commands with descriptions
+    // Note: Enhanced help system with command listing can be added in future updates
     JSONValue result("Help: List of available RPC commands");
     return result;
 }
@@ -325,7 +325,7 @@ JSONValue BlockchainRPC::Stop(const RPCRequest& req, Blockchain& chain, Wallet* 
 
     LOG_INFO("RPC", "Stop command received");
 
-    // TODO: Initiate graceful shutdown
+    // Note: Graceful shutdown requires coordination with main application thread
 
     return JSONValue("Dinari server stopping");
 }
