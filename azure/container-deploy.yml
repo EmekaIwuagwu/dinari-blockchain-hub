@@ -1,0 +1,50 @@
+# Azure Container Instances Deployment
+# Deploy with: az container create --resource-group dinari-rg --file container-deploy.yml
+
+apiVersion: '2021-09-01'
+location: eastus
+name: dinari-blockchain-container
+properties:
+  containers:
+  - name: dinari-node
+    properties:
+      image: dinariblockchain/node:latest
+      resources:
+        requests:
+          cpu: 2
+          memoryInGb: 4
+      ports:
+      - port: 9333
+        protocol: TCP
+      - port: 9334
+        protocol: TCP
+      environmentVariables:
+      - name: DINARI_NETWORK
+        value: mainnet
+      - name: RPC_USER
+        secureValue: YOUR_RPC_USER
+      - name: RPC_PASSWORD
+        secureValue: YOUR_RPC_PASSWORD
+      volumeMounts:
+      - name: dinari-data
+        mountPath: /data/dinari
+  osType: Linux
+  restartPolicy: Always
+  ipAddress:
+    type: Public
+    ports:
+    - protocol: TCP
+      port: 9333
+    - protocol: TCP
+      port: 9334
+    dnsNameLabel: dinari-blockchain
+  volumes:
+  - name: dinari-data
+    azureFile:
+      shareName: dinari-blockchain-data
+      storageAccountName: YOUR_STORAGE_ACCOUNT
+      storageAccountKey: YOUR_STORAGE_KEY
+tags:
+  environment: production
+  application: dinari-blockchain
+type: Microsoft.ContainerInstance/containerGroups

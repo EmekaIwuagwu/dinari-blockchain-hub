@@ -1,0 +1,592 @@
+{
+	"info": {
+		"_postman_id": "dinari-blockchain-api",
+		"name": "Dinari Blockchain API",
+		"description": "Complete RPC API collection for Dinari Blockchain",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "username",
+				"value": "dinariuser",
+				"type": "string"
+			},
+			{
+				"key": "password",
+				"value": "dinaripass",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Blockchain Queries",
+			"item": [
+				{
+					"name": "Get Block Count",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getblockcount\",\n    \"params\": [],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success Example",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getblockcount\",\n    \"params\": [],\n    \"id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:9334/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "9334",
+									"path": [
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"jsonrpc\": \"2.0\",\n    \"result\": 150,\n    \"id\": 1\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Block Hash",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getblockhash\",\n    \"params\": [0],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Block",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getblock\",\n    \"params\": [\"000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f\", true],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success Example",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getblock\",\n    \"params\": [\"000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f\", true],\n    \"id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:9334/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "9334",
+									"path": [
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"jsonrpc\": \"2.0\",\n    \"result\": {\n        \"hash\": \"000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f\",\n        \"height\": 0,\n        \"version\": 1,\n        \"merkleroot\": \"...\",\n        \"time\": 1231006505,\n        \"bits\": 486604799,\n        \"nonce\": 2083236893,\n        \"tx_count\": 1\n    },\n    \"id\": 1\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Best Block Hash",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getbestblockhash\",\n    \"params\": [],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Blockchain Info",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getblockchaininfo\",\n    \"params\": [],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Blockchain Explorer",
+			"item": [
+				{
+					"name": "Get Transaction by Hash",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getrawtransaction\",\n    \"params\": [\"your_transaction_hash_here\", true],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						},
+						"description": "Get detailed information about a transaction by its hash.\nParams: [txid, verbose=true]\n- txid: Transaction hash\n- verbose: If true, returns JSON object; if false, returns hex string"
+					},
+					"response": [
+						{
+							"name": "Success Example",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getrawtransaction\",\n    \"params\": [\"abc123...\", true],\n    \"id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:9334/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "9334",
+									"path": [
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"jsonrpc\": \"2.0\",\n    \"result\": {\n        \"txid\": \"abc123...\",\n        \"version\": 1,\n        \"locktime\": 0,\n        \"size\": 225,\n        \"coinbase\": false,\n        \"vin\": [...],\n        \"vout\": [...],\n        \"blockhash\": \"def456...\",\n        \"blockheight\": 100,\n        \"confirmations\": 50,\n        \"blocktime\": 1735567200\n    },\n    \"id\": 1\n}"
+						}
+					]
+				},
+				{
+					"name": "List Blocks",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"listblocks\",\n    \"params\": [0, 10],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						},
+						"description": "List blocks with full details including transactions and miner.\nParams: [start_height=0, count=10]\n- start_height: Starting block height (default: 0)\n- count: Number of blocks to return (1-100, default: 10)"
+					},
+					"response": [
+						{
+							"name": "Success Example",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"listblocks\",\n    \"params\": [0, 10],\n    \"id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:9334/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "9334",
+									"path": [
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"jsonrpc\": \"2.0\",\n    \"result\": [\n        {\n            \"height\": 0,\n            \"hash\": \"000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f\",\n            \"timestamp\": 1231006505,\n            \"time\": \"2009-01-03T18:15:05Z\",\n            \"tx_count\": 1,\n            \"size\": 285,\n            \"bits\": 486604799,\n            \"nonce\": 2083236893,\n            \"merkleroot\": \"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\n            \"transactions\": [\n                \"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\"\n            ],\n            \"miner\": \"D1A2b3C4d5E6f7G8h9I0j1K2\",\n            \"confirmations\": 151\n        },\n        {...}\n    ],\n    \"id\": 1\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Wallet Operations",
+			"item": [
+				{
+					"name": "Get New Address",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getnewaddress\",\n    \"params\": [\"default\"],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Balance",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getbalance\",\n    \"params\": [],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send To Address",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"sendtoaddress\",\n    \"params\": [\"D1A2b3C4d5E6f7G8h9I0j1K2L3M4n5O6\", 1000000000],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Addresses",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"listaddresses\",\n    \"params\": [],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Transactions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"listtransactions\",\n    \"params\": [10],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Mempool",
+			"item": [
+				{
+					"name": "Get Mempool Info",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getmempoolinfo\",\n    \"params\": [],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Raw Mempool",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"getrawmempool\",\n    \"params\": [false],\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:9334/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9334",
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:9334",
+			"type": "string"
+		},
+		{
+			"key": "rpcUser",
+			"value": "dinariuser",
+			"type": "string"
+		},
+		{
+			"key": "rpcPassword",
+			"value": "dinaripass",
+			"type": "string"
+		}
+	]
+}
