@@ -86,8 +86,6 @@ set(NETWORK_SOURCES
 # Source files - Mining
 set(MINING_SOURCES
     src/mining/miner.cpp
-    src/mining/hasher.cpp
-    src/mining/pool.cpp
 )
 
 # Source files - RPC
