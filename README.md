@@ -35,6 +35,214 @@
 
 ---
 
+## Proof of Work Mathematics
+
+Dinari Blockchain implements a **Bitcoin-style Proof of Work (PoW)** consensus mechanism that requires miners to solve a computationally intensive mathematical problem to create new blocks.
+
+### The Mathematical Problem
+
+Miners must find a **nonce** value such that when combined with the block header and double-hashed with SHA-256, the resulting hash is **numerically less than** a target value:
+
+```
+Double-SHA-256(BlockHeader) < Target
+```
+
+Where:
+- **BlockHeader** contains: `version`, `previousBlockHash`, `merkleRoot`, `timestamp`, `bits`, and **nonce**
+- **Double-SHA-256** means: `SHA-256(SHA-256(data))`
+- **Target** is derived from the difficulty encoded in `bits`
+
+### The Computational Challenge
+
+```cpp
+// The mining loop (simplified)
+for (nonce = 0; nonce < MAX_NONCE; nonce++) {
+    blockHeader.nonce = nonce;
+    hash = SHA256(SHA256(blockHeader));
+
+    if (hash < target) {
+        // Solution found! Block is valid.
+        return SUCCESS;
+    }
+}
+```
+
+**Key Properties:**
+- **One-way function**: SHA-256 is cryptographically secure and cannot be reversed
+- **Brute force required**: The only way to find a solution is to try different nonce values
+- **Probability-based**: Each hash attempt has a probability of `1 / (2^256 / target)` of success
+- **Difficulty tunable**: By adjusting the target, we control how hard the problem is
+
+### Target Calculation from Bits
+
+The target is encoded in a **compact representation** called "bits" (4 bytes):
+
+```
+bits = 0xAABBCCDD
+     = [exponent: AA] [mantissa: BBCCDD]
+
+Target = mantissa × 2^(8 × (exponent - 3))
+```
+
+**Example:**
+```
+bits = 0x1d00ffff  (Genesis difficulty)
+exponent = 0x1d = 29
+mantissa = 0x00ffff = 65535
+
+Target = 65535 × 2^(8 × (29 - 3))
+       = 65535 × 2^208
+       = 0x00000000ffff0000000000000000000000000000000000000000000000000000
+```
+
+### Difficulty and Target Relationship
+
+**Difficulty** is inversely proportional to the target:
+
+```
+Difficulty = MAX_TARGET / Current_TARGET
+
+MAX_TARGET = 2^224 - 1  (the easiest possible difficulty)
+```
+
+**Relationship:**
+- **Higher difficulty** → **Lower target** → **Fewer valid hashes** → **Harder to find**
+- **Lower difficulty** → **Higher target** → **More valid hashes** → **Easier to find**
+
+### Difficulty Adjustment Algorithm
+
+To maintain a **consistent 10-minute block time**, difficulty adjusts every **2,016 blocks** (approximately 2 weeks):
+
+```
+Actual_Timespan = Time(Last_Block) - Time(First_Block_In_Period)
+Target_Timespan = 2016 blocks × 10 minutes = 20,160 minutes
+
+New_Difficulty = Current_Difficulty × (Target_Timespan / Actual_Timespan)
+```
+
+**Adjustment Limits:**
+- Maximum adjustment: **4x easier** or **4x harder** per period
+- This prevents drastic difficulty changes from large hashrate fluctuations
+
+**Formula Implementation:**
+```cpp
+// If blocks took longer than expected (network slower)
+if (actualTimespan > targetTimespan) {
+    // Make mining EASIER (increase target, decrease difficulty)
+    adjustment = min(actualTimespan / targetTimespan, 4.0);
+    newTarget = currentTarget × adjustment;
+}
+// If blocks came faster than expected (network faster)
+else {
+    // Make mining HARDER (decrease target, increase difficulty)
+    adjustment = min(targetTimespan / actualTimespan, 4.0);
+    newTarget = currentTarget / adjustment;
+}
+```
+
+### Mining Probability and Expected Time
+
+For a given hash rate `H` (hashes per second) and difficulty `D`:
+
+```
+Expected_Time_To_Find_Block = (D × 2^32) / H
+
+Example:
+- Difficulty: 1,000,000
+- Hash Rate: 1 TH/s (1,000,000,000,000 H/s)
+- Expected Time: (1,000,000 × 4,294,967,296) / 1,000,000,000,000
+                ≈ 4,295 seconds ≈ 71.6 minutes
+```
+
+### Multi-Threaded Mining
+
+Dinari implements **parallel mining** by distributing the nonce search space:
+
+```
+Total_Nonce_Space = 2^32 (4,294,967,296 possible values)
+
+For N threads:
+- Thread 0: nonces [0 to 2^32/N - 1]
+- Thread 1: nonces [2^32/N to 2×2^32/N - 1]
+- Thread N-1: nonces [(N-1)×2^32/N to 2^32 - 1]
+```
+
+Each thread independently searches its range, maximizing CPU utilization.
+
+### Verification
+
+Any node can **instantly verify** a block's proof of work:
+
+```cpp
+bool VerifyProofOfWork(BlockHeader header) {
+    Hash256 hash = SHA256(SHA256(header));
+    Hash256 target = BitsToTarget(header.bits);
+
+    return (hash < target);  // Simple comparison
+}
+```
+
+**Asymmetric cost:**
+- **Finding** a valid nonce: Computationally expensive (millions/billions of hashes)
+- **Verifying** a valid nonce: Trivial (one hash + comparison)
+
+### Security Guarantees
+
+The Proof of Work system provides:
+
+1. **Sybil Resistance**: Creating blocks requires real computational work, not just identities
+2. **Economic Security**: Attacking the network requires >51% of total hash power
+3. **Consensus Formation**: The longest chain (most accumulated work) wins
+4. **Immutability**: Rewriting history requires redoing all proof of work
+
+### Mathematical Security Properties
+
+```
+Work_In_Block = 2^256 / Target
+
+Total_Chain_Work = Σ Work_In_Block_i  (sum of all blocks)
+
+To_Rewrite_N_Blocks = Must_Redo_Work(N) + Maintain_Lead
+                    = Requires > 51% sustained hash rate
+```
+
+**Attack Cost:**
+```
+Cost_To_Attack = (Hash_Rate_Required × Time × Energy_Cost)
+                + (Hardware_Investment)
+
+For a 51% attack on a network with 100 TH/s:
+- Need: 51 TH/s sustained
+- Time: Hours to days (depending on depth)
+- Energy: Megawatts
+- Hardware: Millions of dollars in mining equipment
+```
+
+### Implementation Details
+
+**Location in Codebase:**
+- **Mining Algorithm**: `src/mining/miner.cpp` (lines 90-134, 263-291)
+- **PoW Verification**: `src/crypto/hash.cpp` (lines 203-212)
+- **Difficulty Adjustment**: `src/consensus/difficulty.cpp` (lines 15-110)
+- **Target Conversion**: `src/mining/miner.cpp` (lines 293-315)
+
+**Key Functions:**
+```cpp
+// Mining loop
+bool CPUMiner::Mine(Block& block, Nonce start, Nonce end);
+
+// Verification
+bool Hash::CheckProofOfWork(const Hash256& hash, uint32_t target);
+
+// Target calculation
+Hash256 CPUMiner::BitsToTarget(uint32_t bits);
+
+// Difficulty adjustment
+uint32_t DifficultyAdjuster::GetNextWorkRequired(const BlockIndex* lastBlock);
+```
+
+---
+
 ## Features
 
 ### ✅ Implemented (Phase 1 - Foundation)
