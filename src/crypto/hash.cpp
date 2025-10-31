@@ -266,23 +266,33 @@ bool Hash::CheckProofOfWork(const Hash256& hash, uint32_t target) {
 }
 
 Hash256 Hash::CompactToTarget(uint32_t compact) {
+    // Extract exponent (size in bytes) and mantissa (coefficient)
     uint32_t exponent = compact >> 24;
-    uint32_t mantissa = compact & 0x007fffff;
-    bool negative = (compact & 0x00800000) != 0;
+    uint32_t mantissa = compact & 0x00ffffff;  // 24-bit mantissa
+    bool negative = (compact & 0x00800000) != 0;  // Check sign bit
 
-    if (negative || mantissa == 0) {
+    // Negative targets and zero mantissa are invalid
+    if (negative || mantissa == 0 || exponent == 0) {
+        return Hash256{};
+    }
+
+    // Prevent overflow: exponent should not exceed 32 (256 bits / 8)
+    if (exponent > 32) {
         return Hash256{};
     }
 
     uint256_t result = mantissa;
+
+    // Shift by (exponent - 3) bytes since mantissa represents 3 bytes
     int32_t shift = static_cast<int32_t>(exponent) - 3;
 
-    if (shift > 0) {
+    if (shift > 0 && shift <= 29) {  // Max shift: 32 - 3 = 29 bytes
         result <<= static_cast<uint32_t>(shift) * 8;
     } else if (shift < 0) {
         result >>= static_cast<uint32_t>(-shift) * 8;
     }
 
+    // Cap at maximum value (shouldn't happen with proper exponent check)
     if (result > MaxUint256()) {
         result = MaxUint256();
     }
@@ -297,21 +307,31 @@ uint32_t Hash::TargetToCompact(const Hash256& target) {
         return 0;
     }
 
+    // Find the most significant byte position
     int exponent = (boost::multiprecision::msb(value) / 8) + 1;
     uint256_t mantissa = value;
 
+    // Normalize mantissa to 3 bytes
     if (exponent <= 3) {
         mantissa <<= 8 * (3 - exponent);
     } else {
         mantissa >>= 8 * (exponent - 3);
     }
 
-    // Mask to 24 bits
-    mantissa &= uint256_t(0x007fffff);
-
+    // If the high bit (sign bit) is set, shift right by one byte and increment exponent
+    // This ensures the mantissa is positive (sign bit = 0)
     if (mantissa & uint256_t(0x00800000)) {
         mantissa >>= 8;
         exponent++;
+    }
+
+    // Ensure mantissa fits in 23 bits (no sign bit)
+    mantissa &= uint256_t(0x007fffff);
+
+    // Cap exponent at maximum value
+    if (exponent > 0xff) {
+        exponent = 0xff;
+        mantissa = 0x007fffff;
     }
 
     uint32_t compact = static_cast<uint32_t>(mantissa.convert_to<uint32_t>());

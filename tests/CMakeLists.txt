@@ -30,6 +30,11 @@ add_dinari_test(test_ecdsa unit/test_ecdsa.cpp)
 add_dinari_test(test_serialize unit/test_serialize.cpp)
 add_dinari_test(test_config unit/test_config.cpp)
 
+# Consensus hardening tests
+add_executable(test_consensus_fixes test_consensus_fixes.cpp)
+target_link_libraries(test_consensus_fixes PRIVATE dinari_core)
+add_test(NAME test_consensus_fixes COMMAND test_consensus_fixes)
+
 # Integration tests (to be implemented)
 # add_dinari_test(test_blockchain integration/test_blockchain.cpp)
 # add_dinari_test(test_network integration/test_network.cpp)
