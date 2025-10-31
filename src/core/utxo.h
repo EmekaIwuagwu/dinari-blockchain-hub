@@ -4,6 +4,7 @@
 #include "dinari/types.h"
 #include "transaction.h"
 #include <map>
+#include <optional>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
@@ -123,7 +124,7 @@ private:
 
     // Helper methods
     void BuildAddressIndex();
-    Hash160 ExtractAddressFromScript(const bytes& script) const;
+    std::optional<Hash160> ExtractAddressFromScript(const bytes& script) const;
 };
 
 /**

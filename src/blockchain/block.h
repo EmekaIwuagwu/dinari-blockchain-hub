@@ -6,6 +6,7 @@
 #include "util/serialize.h"
 #include <vector>
 #include <memory>
+#include <boost/multiprecision/cpp_int.hpp>
 
 namespace dinari {
 
@@ -54,7 +55,7 @@ public:
     Hash256 GetTarget() const;
 
     // Calculate work represented by this block
-    uint64_t GetWork() const;
+    boost::multiprecision::uint256_t GetWork() const;
 
     // String representation
     std::string ToString() const;
@@ -140,7 +141,8 @@ public:
 
     // Chain metadata
     BlockHeight height;
-    uint64_t chainWork;        // Total work from genesis to this block
+    boost::multiprecision::uint256_t chainWork;        // Total work from genesis to this block
+    Amount moneySupply;         // Total money supply up to this block
     BlockIndex* prev;           // Previous block in chain
     std::vector<BlockIndex*> next;  // Possible next blocks (for forks)
 
@@ -152,6 +154,7 @@ public:
     BlockIndex()
         : height(0)
         , chainWork(0)
+        , moneySupply(0)
         , prev(nullptr)
         , isValid(false)
         , isMainChain(false)
@@ -161,6 +164,7 @@ public:
         : block(blk)
         , height(h)
         , chainWork(0)
+        , moneySupply(0)
         , prev(nullptr)
         , isValid(false)
         , isMainChain(false)

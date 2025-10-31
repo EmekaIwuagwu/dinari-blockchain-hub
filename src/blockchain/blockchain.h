@@ -91,7 +91,7 @@ public:
      *
      * @return Total work from genesis to tip
      */
-    uint64_t GetChainWork() const;
+    boost::multiprecision::uint256_t GetChainWork() const;
 
     /**
      * @brief Check if block exists in chain
@@ -152,7 +152,7 @@ public:
         BlockHeight height;
         size_t totalBlocks;
         size_t orphanBlocks;
-        uint64_t totalWork;
+        boost::multiprecision::uint256_t totalWork;
         Hash256 bestBlockHash;
         Amount totalSupply;
         size_t utxoCount;

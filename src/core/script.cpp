@@ -173,18 +173,25 @@ Script Script::CreateNullData(const bytes& data) {
 
 // ScriptEngine implementation
 
-ScriptEngine::ScriptEngine() {
-}
+ScriptEngine::ScriptEngine() : currentScriptCode(nullptr) {}
 
 bool ScriptEngine::Verify(const bytes& scriptSig, const bytes& scriptPubKey,
                           const Transaction& tx, size_t inputIndex) {
+    // Reset interpreter state
+    std::stack<bytes> emptyStack;
+    std::stack<bytes> emptyAltStack;
+    stack.swap(emptyStack);
+    altStack.swap(emptyAltStack);
+    lastError.clear();
+    currentScriptCode = nullptr;
+
     // Execute scriptSig first
     if (!ExecuteScript(scriptSig, tx, inputIndex)) {
         return false;
     }
 
     // Execute scriptPubKey with the resulting stack
-    if (!ExecuteScript(scriptPubKey, tx, inputIndex)) {
+    if (!ExecuteScript(scriptPubKey, tx, inputIndex, &scriptPubKey)) {
         return false;
     }
 
@@ -208,31 +215,37 @@ bool ScriptEngine::Verify(const bytes& scriptSig, const bytes& scriptPubKey,
 }
 
 bool ScriptEngine::ExecuteScript(const bytes& script, const Transaction& tx,
-                                 size_t inputIndex) {
+                                 size_t inputIndex, const bytes* scriptCode) {
+    const bytes* previousScriptCode = currentScriptCode;
+    if (scriptCode) {
+        currentScriptCode = scriptCode;
+    }
+    bool success = true;
+
     for (size_t pc = 0; pc < script.size(); ) {
         uint8_t op = script[pc];
 
-        // Data push
         if (op >= 1 && op <= 75) {
             size_t len = op;
             if (pc + 1 + len > script.size()) {
                 lastError = "Script push exceeds script length";
-                return false;
+                success = false;
+                break;
             }
             bytes data(script.begin() + pc + 1, script.begin() + pc + 1 + len);
             PushStack(data);
             pc += len + 1;
-        }
-        // Opcodes
-        else {
+        } else {
             if (!ExecuteOpcode(static_cast<OpCode>(op), tx, inputIndex)) {
-                return false;
+                success = false;
+                break;
             }
             pc++;
         }
     }
 
-    return true;
+    currentScriptCode = previousScriptCode;
+    return success;
 }
 
 bool ScriptEngine::ExecuteOpcode(OpCode opcode, const Transaction& tx,
@@ -408,7 +421,9 @@ bool ScriptEngine::OpCheckSig(const Transaction& tx, size_t inputIndex) {
     signature.pop_back();  // Remove hash type byte
 
     // Get signature hash
-    Hash256 sigHash = tx.GetSignatureHash(inputIndex, bytes(), hashType);
+    const bytes* scriptCode = currentScriptCode;
+    const bytes& scriptForHash = scriptCode ? *scriptCode : EmptyScript();
+    Hash256 sigHash = tx.GetSignatureHash(inputIndex, scriptForHash, hashType);
 
     // Verify using ECDSA
     bool valid = crypto::ECDSA::Verify(sigHash, signature, pubkey);
@@ -416,6 +431,11 @@ bool ScriptEngine::OpCheckSig(const Transaction& tx, size_t inputIndex) {
     PushStack(IntToBytes(valid ? 1 : 0));
 
     return true;
+}
+
+const bytes& ScriptEngine::EmptyScript() {
+    static const bytes empty{};
+    return empty;
 }
 
 bool ScriptEngine::OpAdd() {
