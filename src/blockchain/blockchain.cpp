@@ -9,17 +9,49 @@
 namespace dinari {
 
 Blockchain::Blockchain()
-    : bestBlock(nullptr)
+    : persistenceEnabled(false)
+    , bestBlock(nullptr)
     , genesisBlock(nullptr) {
 }
 
 Blockchain::~Blockchain() {
 }
 
-bool Blockchain::Initialize(const Block& genesis) {
+bool Blockchain::Initialize(const Block& genesis, const std::string& dataDir) {
     std::lock_guard<std::mutex> lock(mutex);
 
-    LOG_INFO("Blockchain", "Initializing blockchain with genesis block");
+    LOG_INFO("Blockchain", "Initializing blockchain");
+
+    // Open persistent storage if dataDir provided
+    if (!dataDir.empty()) {
+        LOG_INFO("Blockchain", "Opening persistent storage: " + dataDir);
+
+        if (!blockStore.Open(dataDir)) {
+            LOG_ERROR("Blockchain", "Failed to open block store");
+            return false;
+        }
+
+        if (!txIndex.Open(dataDir)) {
+            LOG_ERROR("Blockchain", "Failed to open transaction index");
+            return false;
+        }
+
+        persistenceEnabled = true;
+
+        // Try to load existing blockchain from disk
+        if (LoadFromDisk()) {
+            LOG_INFO("Blockchain", "Loaded existing blockchain from disk");
+            LOG_INFO("Blockchain", "Height: " + std::to_string(GetHeight()));
+            LOG_INFO("Blockchain", "Best block: " +
+                     crypto::Hash::ToHex(bestBlock->GetBlockHash()).substr(0, 16) + "...");
+            return true;
+        }
+
+        LOG_INFO("Blockchain", "No existing blockchain found, initializing with genesis");
+    } else {
+        LOG_WARNING("Blockchain", "Running in memory-only mode (no persistence)");
+        persistenceEnabled = false;
+    }
 
     // Validate genesis block
     if (!genesis.IsValid()) {
@@ -47,6 +79,26 @@ bool Blockchain::Initialize(const Block& genesis) {
     if (!UpdateUTXOs(genesis, 0)) {
         LOG_ERROR("Blockchain", "Failed to initialize UTXO set");
         return false;
+    }
+
+    // Persist genesis block if persistence enabled
+    if (persistenceEnabled) {
+        if (!blockStore.WriteBlock(genesis, 0)) {
+            LOG_ERROR("Blockchain", "Failed to persist genesis block");
+            return false;
+        }
+
+        if (!blockStore.SetBestBlockHash(genesisHash)) {
+            LOG_ERROR("Blockchain", "Failed to persist best block hash");
+            return false;
+        }
+
+        if (!blockStore.SetChainHeight(0)) {
+            LOG_ERROR("Blockchain", "Failed to persist chain height");
+            return false;
+        }
+
+        LOG_INFO("Blockchain", "Genesis block persisted to disk");
     }
 
     LOG_INFO("Blockchain", "Blockchain initialized");
@@ -92,9 +144,18 @@ bool Blockchain::AcceptBlock(const Block& block) {
 
     LOG_DEBUG("Blockchain", "Block height: " + std::to_string(height));
 
-    // Store block
+    // Store block in memory
     auto blockPtr = std::make_shared<Block>(block);
     blocks[blockHash] = blockPtr;
+
+    // Persist block to disk if enabled
+    if (persistenceEnabled) {
+        if (!blockStore.WriteBlock(block, height)) {
+            LOG_ERROR("Blockchain", "Failed to persist block to disk");
+            return false;
+        }
+        LOG_DEBUG("Blockchain", "Block persisted to disk");
+    }
 
     // Create block index
     BlockIndex* blockIndex = CreateBlockIndex(blockPtr, height);
@@ -125,6 +186,19 @@ bool Blockchain::AcceptBlock(const Block& block) {
         if (!SetBestChain(blockIndex)) {
             LOG_ERROR("Blockchain", "Failed to set best chain");
             return false;
+        }
+
+        // Persist chain state if enabled
+        if (persistenceEnabled) {
+            if (!blockStore.SetBestBlockHash(blockHash)) {
+                LOG_ERROR("Blockchain", "Failed to persist best block hash");
+            }
+            if (!blockStore.SetChainHeight(height)) {
+                LOG_ERROR("Blockchain", "Failed to persist chain height");
+            }
+            if (!blockStore.SetTotalWork(blockIndex->chainWork)) {
+                LOG_ERROR("Blockchain", "Failed to persist total work");
+            }
         }
     }
 
@@ -377,11 +451,52 @@ BlockIndex* Blockchain::CreateBlockIndex(const SharedPtr<Block>& block, BlockHei
 }
 
 bool Blockchain::UpdateUTXOs(const Block& block, BlockHeight height) {
-    return utxos.ApplyTransaction(block.GetCoinbaseTransaction(), height) &&
-           std::all_of(block.transactions.begin() + 1, block.transactions.end(),
-                      [&](const Transaction& tx) {
-                          return utxos.ApplyTransaction(tx, height);
-                      });
+    // Update in-memory UTXO set
+    bool success = utxos.ApplyTransaction(block.GetCoinbaseTransaction(), height) &&
+                   std::all_of(block.transactions.begin() + 1, block.transactions.end(),
+                              [&](const Transaction& tx) {
+                                  return utxos.ApplyTransaction(tx, height);
+                              });
+
+    if (!success) {
+        return false;
+    }
+
+    // Persist UTXO changes if enabled
+    if (persistenceEnabled) {
+        // Index all transactions
+        for (uint32_t txIdx = 0; txIdx < block.transactions.size(); ++txIdx) {
+            const auto& tx = block.transactions[txIdx];
+
+            // Index transaction location
+            if (!txIndex.IndexTransaction(tx, height, txIdx)) {
+                LOG_ERROR("Blockchain", "Failed to index transaction");
+                return false;
+            }
+
+            // Add new UTXOs
+            Hash256 txHash = tx.GetHash();
+            for (size_t vout = 0; vout < tx.outputs.size(); ++vout) {
+                OutPoint outpoint(txHash, static_cast<TxOutIndex>(vout));
+                if (!txIndex.AddUTXO(outpoint, tx.outputs[vout])) {
+                    LOG_ERROR("Blockchain", "Failed to persist UTXO");
+                    return false;
+                }
+            }
+
+            // Remove spent UTXOs (except coinbase)
+            if (txIdx > 0) {
+                for (const auto& input : tx.inputs) {
+                    if (!txIndex.RemoveUTXO(input.prevOutput)) {
+                        LOG_ERROR("Blockchain", "Failed to remove spent UTXO");
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
 }
 
 bool Blockchain::RevertUTXOs(const Block& block) {
@@ -591,6 +706,151 @@ Amount Blockchain::CalculateTotalSupply(BlockHeight height) const {
     }
 
     return total;
+}
+
+bool Blockchain::LoadFromDisk() {
+    if (!persistenceEnabled) {
+        return false;
+    }
+
+    LOG_INFO("Blockchain", "Loading blockchain from disk...");
+
+    // Get best block hash
+    auto bestHashOpt = blockStore.GetBestBlockHash();
+    if (!bestHashOpt) {
+        LOG_INFO("Blockchain", "No blockchain found on disk");
+        return false;
+    }
+
+    Hash256 bestHash = *bestHashOpt;
+
+    // Get chain height
+    auto heightOpt = blockStore.GetChainHeight();
+    if (!heightOpt) {
+        LOG_ERROR("Blockchain", "Chain height not found");
+        return false;
+    }
+
+    BlockHeight chainHeight = *heightOpt;
+
+    LOG_INFO("Blockchain", "Loading " + std::to_string(chainHeight + 1) + " blocks...");
+
+    // Load all blocks from genesis to tip
+    for (BlockHeight h = 0; h <= chainHeight; ++h) {
+        auto blockOpt = blockStore.ReadBlock(h);
+        if (!blockOpt) {
+            LOG_ERROR("Blockchain", "Failed to load block at height " + std::to_string(h));
+            return false;
+        }
+
+        Block block = *blockOpt;
+        Hash256 blockHash = block.GetHash();
+
+        // Store in memory cache
+        auto blockPtr = std::make_shared<Block>(block);
+        blocks[blockHash] = blockPtr;
+
+        // Create block index
+        BlockIndex* blockIndex = CreateBlockIndex(blockPtr, h);
+        blockIndex->isValid = true;
+
+        // Link to previous block
+        if (h > 0) {
+            auto prevHashOpt = blockStore.ReadBlock(h - 1);
+            if (prevHashOpt) {
+                Hash256 prevHash = prevHashOpt->GetHash();
+                const BlockIndex* prevIndex = GetBlockIndex(prevHash);
+                if (prevIndex) {
+                    blockIndex->prev = const_cast<BlockIndex*>(prevIndex);
+                    const_cast<BlockIndex*>(prevIndex)->next.push_back(blockIndex);
+                }
+            }
+        } else {
+            // This is genesis
+            genesisBlock = blockIndex;
+        }
+
+        // Update chain work
+        blockIndex->UpdateChainWork();
+
+        // Mark as main chain and add to height index
+        blockIndex->isMainChain = true;
+        heightIndex[h] = blockHash;
+
+        // Load UTXO set from transaction index
+        for (uint32_t txIdx = 0; txIdx < block.transactions.size(); ++txIdx) {
+            const auto& tx = block.transactions[txIdx];
+            Hash256 txHash = tx.GetHash();
+
+            // Load outputs into in-memory UTXO set
+            for (size_t vout = 0; vout < tx.outputs.size(); ++vout) {
+                OutPoint outpoint(txHash, static_cast<TxOutIndex>(vout));
+
+                // Check if UTXO still exists (not spent)
+                if (txIndex.HasUTXO(outpoint)) {
+                    auto utxoOpt = txIndex.GetUTXO(outpoint);
+                    if (utxoOpt) {
+                        utxos.AddUTXO(outpoint, *utxoOpt, h);
+                    }
+                }
+            }
+        }
+
+        if (h % 1000 == 0 || h == chainHeight) {
+            LOG_INFO("Blockchain", "Loaded " + std::to_string(h + 1) + " blocks");
+        }
+    }
+
+    // Set best block
+    bestBlock = const_cast<BlockIndex*>(GetBlockIndex(bestHash));
+
+    if (!bestBlock) {
+        LOG_ERROR("Blockchain", "Failed to find best block");
+        return false;
+    }
+
+    LOG_INFO("Blockchain", "Blockchain loaded successfully");
+    LOG_INFO("Blockchain", "Height: " + std::to_string(chainHeight));
+    LOG_INFO("Blockchain", "Best block: " + crypto::Hash::ToHex(bestHash).substr(0, 16) + "...");
+    LOG_INFO("Blockchain", "UTXO set size: " + std::to_string(utxos.GetSize()));
+
+    return true;
+}
+
+bool Blockchain::FlushToDisk() {
+    if (!persistenceEnabled) {
+        return false;
+    }
+
+    LOG_INFO("Blockchain", "Flushing blockchain state to disk...");
+
+    // Best block hash and height are already persisted on each block acceptance
+    // This method can be used for additional periodic flushing if needed
+
+    LOG_INFO("Blockchain", "Flush complete");
+
+    return true;
+}
+
+SharedPtr<Block> Blockchain::GetBlockData(const Hash256& hash) const {
+    // First check memory cache
+    auto it = blocks.find(hash);
+    if (it != blocks.end()) {
+        return it->second;
+    }
+
+    // If persistence enabled, try loading from disk
+    if (persistenceEnabled) {
+        auto blockOpt = blockStore.ReadBlockByHash(hash);
+        if (blockOpt) {
+            // Add to cache and return
+            auto blockPtr = std::make_shared<Block>(*blockOpt);
+            blocks[hash] = blockPtr;  // Note: const_cast might be needed
+            return blockPtr;
+        }
+    }
+
+    return nullptr;
 }
 
 } // namespace dinari

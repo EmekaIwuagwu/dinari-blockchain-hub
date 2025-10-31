@@ -122,7 +122,8 @@ using WeakPtr = std::weak_ptr<T>;
 
 // Helper functions
 inline bool MoneyRange(Amount amount) {
-    return (amount >= 0 && amount <= MAX_MONEY);
+    // Amount is unsigned, so >= 0 is always true
+    return (amount <= MAX_MONEY);
 }
 
 inline std::string FormatAmount(Amount amount) {
@@ -132,10 +133,7 @@ inline std::string FormatAmount(Amount amount) {
 
 // Safe arithmetic operations with overflow protection
 inline bool SafeAdd(Amount a, Amount b, Amount& result) {
-    // Check for negative values
-    if (a < 0 || b < 0) {
-        return false;
-    }
+    // Amount is unsigned, no need to check < 0
 
     // Check if either value exceeds MAX_MONEY
     if (a > MAX_MONEY || b > MAX_MONEY) {
@@ -154,12 +152,9 @@ inline bool SafeAdd(Amount a, Amount b, Amount& result) {
 }
 
 inline bool SafeSub(Amount a, Amount b, Amount& result) {
-    // Check for negative values
-    if (a < 0 || b < 0) {
-        return false;
-    }
+    // Amount is unsigned, no need to check < 0
 
-    // Check if subtraction would be negative
+    // Check if subtraction would underflow
     if (a < b) {
         return false;
     }
@@ -169,8 +164,8 @@ inline bool SafeSub(Amount a, Amount b, Amount& result) {
 }
 
 inline bool SafeMul(Amount a, int64_t multiplier, Amount& result) {
-    // Check for negative values
-    if (a < 0 || multiplier < 0) {
+    // Check for negative multiplier (Amount is unsigned)
+    if (multiplier < 0) {
         return false;
     }
 
@@ -192,5 +187,20 @@ inline bool SafeMul(Amount a, int64_t multiplier, Amount& result) {
 }
 
 } // namespace dinari
+
+// Hash specializations for std::array types used in unordered containers
+namespace std {
+    template<typename T, size_t N>
+    struct hash<std::array<T, N>> {
+        size_t operator()(const std::array<T, N>& arr) const noexcept {
+            size_t seed = 0;
+            for (const auto& elem : arr) {
+                // Combine hash using boost::hash_combine algorithm
+                seed ^= std::hash<T>{}(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            }
+            return seed;
+        }
+    };
+}
 
 #endif // DINARI_TYPES_H

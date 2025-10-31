@@ -154,22 +154,28 @@ int RunNode() {
     LOG_INFO("Main", "Starting node services...");
 
     try {
-        // Initialize blockchain
-        LOG_INFO("Main", "Initializing blockchain...");
+        // Initialize blockchain with persistent storage
+        LOG_INFO("Main", "Initializing blockchain with persistent storage...");
         g_blockchain = std::make_unique<Blockchain>();
 
-        // Create genesis block if needed
-        if (g_blockchain->GetHeight() == 0) {
-            LOG_INFO("Main", "Creating genesis block...");
-            Block genesisBlock = Block::CreateGenesisBlock(
-                Config::Instance().IsTestnet()
-            );
-            g_blockchain->AcceptBlock(genesisBlock);
-            LOG_INFO("Main", "Genesis block created: " + genesisBlock.GetHash().ToHex());
+        // Get data directory
+        std::string dataDir = Config::Instance().GetDataDir();
+        LOG_INFO("Main", "Data directory: " + dataDir);
+
+        // Create genesis block
+        Block genesisBlock = Block::CreateGenesisBlock(
+            Config::Instance().IsTestnet()
+        );
+
+        // Initialize blockchain (will load from disk if exists, or create new)
+        if (!g_blockchain->Initialize(genesisBlock, dataDir)) {
+            LOG_ERROR("Main", "Failed to initialize blockchain");
+            return 1;
         }
 
         LOG_INFO("Main", "Blockchain initialized. Height: " +
                  std::to_string(g_blockchain->GetHeight()));
+        LOG_INFO("Main", "Persistent storage: ENABLED");
 
         // Initialize wallet if enabled
         if (Config::Instance().GetBool("wallet", true)) {
