@@ -41,6 +41,7 @@ private:
 
     // Transactions
     static JSONValue SendToAddress(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
+    static JSONValue SendToken(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
     static JSONValue ListTransactions(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
     static JSONValue GetTransaction(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node);
 

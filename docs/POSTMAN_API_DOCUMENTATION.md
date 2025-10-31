@@ -670,7 +670,101 @@ Sends DNT to an address.
 
 ---
 
-### 13. List Addresses
+### 13. Send Token (Enhanced API)
+
+**NEW**: Send DNT tokens with detailed request/response structure including source/destination addresses, timestamp, and transaction hash.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "sendtoken",
+    "params": [{
+        "addressTo": "D1A2b3C4d5E6f7G8h9I0j1K2L3M4n5O6P7Q8r9S0",
+        "amount": 100.5,
+        "addressFrom": "D9Z8y7X6w5V4u3T2s1R0q9P8o7N6m5L4k3J2i1H0"
+    }],
+    "id": "sendtoken"
+}
+```
+
+**Response:**
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "addressFrom": "D9Z8y7X6w5V4u3T2s1R0q9P8o7N6m5L4k3J2i1H0",
+        "addressTo": "D1A2b3C4d5E6f7G8h9I0j1K2L3M4n5O6P7Q8r9S0",
+        "amount": 100.5,
+        "coin_type": "DNT",
+        "timestamp": 1730390400,
+        "transactionHash": "abc123def456789012345678901234567890123456789012345678901234abcd",
+        "status": "submitted_to_mempool"
+    },
+    "id": "sendtoken"
+}
+```
+
+**Request Parameters:**
+- `addressTo` (string, required): Destination Dinari address
+- `amount` (number, required): Amount in DNT (not satoshis)
+- `addressFrom` (string, optional): Source address from your wallet (auto-selected if omitted)
+
+**Response Fields:**
+- `addressFrom` (string): Source address used for the transaction
+- `addressTo` (string): Destination address
+- `amount` (number): Amount sent in DNT
+- `coin_type` (string): Always "DNT" for Dinari tokens
+- `timestamp` (number): Unix timestamp when transaction was created
+- `transactionHash` (string): Transaction ID (TXID) - 64 hex characters
+- `status` (string): Transaction status ("submitted_to_mempool")
+
+**Key Differences from `sendtoaddress`:**
+- **Structured JSON input/output** instead of simple parameters
+- **Amount in DNT** instead of satoshis (more user-friendly)
+- **Includes timestamp** for transaction tracking
+- **Shows source address** for transparency
+- **Status field** indicates transaction lifecycle stage
+
+**Errors:**
+- `-6`: Insufficient funds
+- `-5`: Invalid address format
+- `-13`: Wallet is locked (use `walletpassphrase` first)
+- `-32602`: Missing or invalid parameters
+
+⚠️ **Requires unlocked wallet**
+
+**Example Use Case:**
+```bash
+# Unlock wallet first
+curl -X POST http://localhost:9334/ \
+  -H "Content-Type: application/json" \
+  -u dinariuser:dinaripass \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "walletpassphrase",
+    "params": ["your-passphrase", 60],
+    "id": 1
+  }'
+
+# Send tokens with full transparency
+curl -X POST http://localhost:9334/ \
+  -H "Content-Type: application/json" \
+  -u dinariuser:dinaripass \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "sendtoken",
+    "params": [{
+      "addressTo": "D1RecipientAddress...",
+      "amount": 1000.0
+    }],
+    "id": 2
+  }'
+```
+
+---
+
+### 14. List Addresses
 
 Lists all wallet addresses.
 
@@ -1484,7 +1578,8 @@ POST {{baseUrl}}/
 | **listblocks** | **Explorer** | **List blocks with details** |
 | getnewaddress | Wallet | Generate address |
 | getbalance | Wallet | Get balance |
-| sendtoaddress | Wallet | Send DNT |
+| sendtoaddress | Wallet | Send DNT (simple) |
+| sendtoken | Wallet | Send DNT (enhanced with detailed request/response) |
 | listaddresses | Wallet | List addresses |
 | listtransactions | Wallet | List TXs |
 | listunspent | Wallet | List UTXOs |

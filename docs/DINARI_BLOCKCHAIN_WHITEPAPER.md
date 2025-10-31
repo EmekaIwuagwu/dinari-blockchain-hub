@@ -1,3 +1,55 @@
+<div align="center" style="page-break-after: always;">
+
+<br><br><br><br><br><br>
+
+# **DINARI BLOCKCHAIN**
+
+### **Production-Grade Layer-1 Proof-of-Work Infrastructure**
+
+<br><br>
+
+## *Building the Future of Decentralized Finance*
+
+<br>
+
+**Security-First Architecture | Enterprise Reliability | Proven Cryptography**
+
+<br><br><br><br>
+
+---
+
+**VERSION 1.0**
+
+**December 2024**
+
+---
+
+<br>
+
+**WHITEPAPER**
+
+*Technical Specification & Investment Prospectus*
+
+<br><br><br>
+
+**© 2024 Dinari Blockchain Project**
+
+**All Rights Reserved**
+
+<br>
+
+*For inquiries: info@dinariblockchain.io*
+
+*Website: www.dinariblockchain.io*
+
+<br><br><br><br><br><br>
+
+</div>
+
+---
+
+<div style="page-break-before: always;"></div>
+
 # Dinari Blockchain
 ## A Production-Grade Layer-1 Proof-of-Work Blockchain Infrastructure
 

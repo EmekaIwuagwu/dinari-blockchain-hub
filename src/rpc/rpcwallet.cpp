@@ -80,6 +80,15 @@ void WalletRPC::RegisterCommands(RPCServer& server) {
     ));
 
     server.RegisterCommand(RPCCommand(
+        "sendtoken",
+        SendToken,
+        "wallet",
+        "Send DNT tokens with detailed request/response format",
+        "sendtoken {\"addressTo\":\"<address>\", \"amount\":<amount>, \"addressFrom\":\"<address>\" (optional)}",
+        true
+    ));
+
+    server.RegisterCommand(RPCCommand(
         "listtransactions",
         ListTransactions,
         "wallet",
@@ -347,7 +356,109 @@ JSONValue WalletRPC::SendToAddress(const RPCRequest& req, Blockchain& chain, Wal
 
     LOG_INFO("RPC", "Sent " + std::to_string(amount) + " DNT to " + addrStr);
 
-    return JSONValue(tx.GetHash().ToHex());
+    return JSONValue(crypto::Hash::ToHex(tx.GetHash()));
+}
+
+JSONValue WalletRPC::SendToken(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    // Enhanced token sending API with detailed request/response
+
+    if (!wallet) {
+        RPCHelper::ThrowError(RPC_WALLET_ERROR, "Wallet not loaded");
+    }
+
+    if (wallet->IsLocked()) {
+        RPCHelper::ThrowError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first");
+    }
+
+    // Parse JSON request body
+    // Expected format: {"addressTo": "...", "amount": 100.5, "addressFrom": "..." (optional)}
+    if (req.params.empty()) {
+        RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Missing request parameters");
+    }
+
+    std::string requestJson = req.params[0];
+    JSONObject requestObj;
+    if (!requestObj.Parse(requestJson)) {
+        RPCHelper::ThrowError(RPC_PARSE_ERROR, "Invalid JSON in request");
+    }
+
+    // Extract parameters
+    std::string addressTo = requestObj.GetString("addressTo", "");
+    double amount = requestObj.GetDouble("amount", 0.0);
+    std::string addressFrom = requestObj.GetString("addressFrom", "");  // Optional, for display purposes
+
+    if (addressTo.empty()) {
+        RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Missing 'addressTo' parameter");
+    }
+
+    if (amount <= 0) {
+        RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Invalid 'amount' parameter");
+    }
+
+    // Validate destination address
+    Address toAddr(addressTo);
+    if (!toAddr.IsValid()) {
+        RPCHelper::ThrowError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid destination address");
+    }
+
+    // Convert amount to satoshis
+    Amount amountSatoshis = static_cast<Amount>(amount * COIN);
+
+    if (amountSatoshis <= 0 || amountSatoshis > MAX_MONEY) {
+        RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Amount out of range");
+    }
+
+    // Get source address (if not provided, use default from wallet)
+    std::string fromAddress;
+    if (addressFrom.empty()) {
+        // Get default address from wallet
+        std::vector<Address> addresses = wallet->GetAddresses();
+        if (!addresses.empty()) {
+            fromAddress = addresses[0].ToString();
+        } else {
+            RPCHelper::ThrowError(RPC_WALLET_ERROR, "No addresses in wallet");
+        }
+    } else {
+        // Validate provided source address
+        Address fromAddr(addressFrom);
+        if (!fromAddr.IsValid() || !wallet->IsMine(fromAddr)) {
+            RPCHelper::ThrowError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-owned source address");
+        }
+        fromAddress = addressFrom;
+    }
+
+    // Get current timestamp
+    Timestamp timestamp = Time::GetCurrentTime();
+
+    // Create transaction
+    std::map<Address, Amount> recipients;
+    recipients[toAddr] = amountSatoshis;
+
+    Transaction tx;
+    if (!wallet->SendTransaction(recipients, 10, tx)) {  // 10 sat/byte fee rate
+        RPCHelper::ThrowError(RPC_WALLET_ERROR, "Failed to create transaction");
+    }
+
+    // Broadcast transaction to network
+    if (node) {
+        node->BroadcastTransaction(tx);
+    }
+
+    // Log transaction
+    LOG_INFO("RPC", "SendToken: " + std::to_string(amount) + " DNT from " + fromAddress + " to " + addressTo);
+
+    // Build detailed response
+    // Format: {addressFrom, addressTo, amount, coin_type, timestamp, transactionHash}
+    JSONObject response;
+    response.SetString("addressFrom", fromAddress);
+    response.SetString("addressTo", addressTo);
+    response.SetDouble("amount", amount);
+    response.SetString("coin_type", "DNT");
+    response.SetInt("timestamp", static_cast<int64_t>(timestamp));
+    response.SetString("transactionHash", crypto::Hash::ToHex(tx.GetHash()));
+    response.SetString("status", "submitted_to_mempool");
+
+    return JSONValue(response.Serialize());
 }
 
 JSONValue WalletRPC::ListTransactions(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
