@@ -6,6 +6,25 @@
 #include "dinari/constants.h"
 #include <sstream>
 #include <set>
+#include <boost/multiprecision/cpp_int.hpp>
+
+namespace {
+using boost::multiprecision::uint256_t;
+
+uint256_t Uint256FromHash(const dinari::Hash256& hash) {
+    uint256_t value = 0;
+    for (int i = 31; i >= 0; --i) {
+        value <<= 8;
+        value |= hash[i];
+    }
+    return value;
+}
+
+const uint256_t& MaxUint256() {
+    static const uint256_t max = (uint256_t(1) << 256) - 1;
+    return max;
+}
+} // namespace
 
 namespace dinari {
 
@@ -71,21 +90,16 @@ Hash256 BlockHeader::GetTarget() const {
     return crypto::Hash::CompactToTarget(bits);
 }
 
-uint64_t BlockHeader::GetWork() const {
-    // Work = 2^256 / (target + 1)
-    // For simplicity, we approximate as: work = difficulty
-    // This is good enough for chain selection
-    [[maybe_unused]] Hash256 target = GetTarget();
+boost::multiprecision::uint256_t BlockHeader::GetWork() const {
+    const auto targetHash = GetTarget();
+    boost::multiprecision::uint256_t target = Uint256FromHash(targetHash);
 
-    // Convert target to uint64_t (simplified)
-    // Higher difficulty = more work
-    // Lower target = higher difficulty = more work
+    if (target == 0) {
+        return 0;
+    }
 
-    // For now, return a simple work value based on bits
-    // In production, this would be a proper bignum calculation
-    uint64_t work = 0x100000000ULL / (bits & 0x00FFFFFF);
-
-    return work;
+    const auto& maxTarget = MaxUint256();
+    return (maxTarget / (target + 1)) + 1;
 }
 
 std::string BlockHeader::ToString() const {
@@ -381,21 +395,20 @@ Block CreateGenesisBlock(Timestamp timestamp, uint32_t bits, Nonce nonce,
 
     coinbase.inputs.push_back(coinbaseInput);
 
-    // Coinbase output with 700 Trillion DNT
-    // Note: In a real deployment, this would likely be distributed differently
+    // Coinbase output pays the standard block subsidy to an unspendable script
     TxOut coinbaseOutput;
-    coinbaseOutput.value = MAX_MONEY;  // 700 Trillion DNT
+    coinbaseOutput.value = GetBlockReward(0);
 
-    // Genesis output script (can be unspendable or to a specific address)
-    Serializer scriptS;
-    scriptS.WriteUInt8(0x76);  // OP_DUP
-    scriptS.WriteUInt8(0xa9);  // OP_HASH160
-    scriptS.WriteUInt8(20);    // Push 20 bytes
-    Hash160 genesisHash{};     // All zeros or specific address
-    scriptS.WriteHash160(genesisHash);
-    scriptS.WriteUInt8(0x88);  // OP_EQUALVERIFY
-    scriptS.WriteUInt8(0xac);  // OP_CHECKSIG
-    coinbaseOutput.scriptPubKey = scriptS.MoveData();
+    bytes messageBytes(genesisMessage.begin(), genesisMessage.end());
+    if (messageBytes.size() > 75) {
+        messageBytes.resize(75);
+    }
+
+    bytes script;
+    script.push_back(0x6a);  // OP_RETURN
+    script.push_back(static_cast<byte>(messageBytes.size()));
+    script.insert(script.end(), messageBytes.begin(), messageBytes.end());
+    coinbaseOutput.scriptPubKey = script;
 
     coinbase.outputs.push_back(coinbaseOutput);
     coinbase.lockTime = 0;
@@ -414,7 +427,7 @@ Block CreateGenesisBlock(Timestamp timestamp, uint32_t bits, Nonce nonce,
     LOG_INFO("Genesis", "Created genesis block");
     LOG_INFO("Genesis", "Hash: " + crypto::Hash::ToHex(genesis.GetHash()));
     LOG_INFO("Genesis", "Merkle Root: " + crypto::Hash::ToHex(genesis.header.merkleRoot));
-    LOG_INFO("Genesis", "Initial Supply: " + FormatAmount(MAX_MONEY));
+    LOG_INFO("Genesis", "Initial Supply: " + FormatAmount(coinbaseOutput.value));
 
     return genesis;
 }

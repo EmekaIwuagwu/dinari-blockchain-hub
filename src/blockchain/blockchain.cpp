@@ -5,6 +5,7 @@
 #include "util/time.h"
 #include "dinari/constants.h"
 #include <algorithm>
+#include <boost/multiprecision/cpp_int.hpp>
 
 namespace dinari {
 
@@ -80,6 +81,10 @@ bool Blockchain::Initialize(const Block& genesis, const std::string& dataDir) {
         LOG_ERROR("Blockchain", "Failed to initialize UTXO set");
         return false;
     }
+
+    // Initialize money supply with genesis coinbase
+    Amount genesisSupply = genesis.HasCoinbase() ? genesis.GetCoinbaseTransaction().GetOutputValue() : 0;
+    genesisBlock->moneySupply = genesisSupply;
 
     // Persist genesis block if persistence enabled
     if (persistenceEnabled) {
@@ -214,6 +219,22 @@ bool Blockchain::ConnectBlock(const Block& block, BlockIndex* blockIndex) {
     // Update chain work
     blockIndex->UpdateChainWork();
 
+    // Update money supply tracking
+    Amount previousSupply = blockIndex->prev ? blockIndex->prev->moneySupply : 0;
+    Amount coinbaseValue = block.HasCoinbase() ? block.GetCoinbaseTransaction().GetOutputValue() : 0;
+    Amount totalFees = block.GetTotalFees(utxos);
+    Amount minted = 0;
+    if (coinbaseValue > totalFees) {
+        minted = coinbaseValue - totalFees;
+    }
+
+    Amount newSupply = previousSupply;
+    if (!SafeAdd(previousSupply, minted, newSupply)) {
+        LOG_ERROR("Blockchain", "Money supply overflow when connecting block");
+        return false;
+    }
+    blockIndex->moneySupply = newSupply;
+
     // Update UTXO set
     if (!UpdateUTXOs(block, blockIndex->height)) {
         return false;
@@ -286,7 +307,7 @@ bool Blockchain::SetBestChain(BlockIndex* newTip) {
     LOG_INFO("Blockchain", "New best block: " +
              crypto::Hash::ToHex(newTip->GetBlockHash()).substr(0, 16) + "...");
     LOG_INFO("Blockchain", "Height: " + std::to_string(newTip->height));
-    LOG_INFO("Blockchain", "Chain work: " + std::to_string(newTip->chainWork));
+    LOG_INFO("Blockchain", "Chain work: " + newTip->chainWork.str());
 
     return true;
 }
@@ -560,9 +581,9 @@ BlockHeight Blockchain::GetHeight() const {
     return bestBlock ? bestBlock->height : 0;
 }
 
-uint64_t Blockchain::GetChainWork() const {
+boost::multiprecision::uint256_t Blockchain::GetChainWork() const {
     std::lock_guard<std::mutex> lock(mutex);
-    return bestBlock ? bestBlock->chainWork : 0;
+    return bestBlock ? bestBlock->chainWork : boost::multiprecision::uint256_t(0);
 }
 
 bool Blockchain::HasBlock(const Hash256& hash) const {
@@ -772,6 +793,18 @@ bool Blockchain::LoadFromDisk() {
 
         // Update chain work
         blockIndex->UpdateChainWork();
+
+        // Reconstruct money supply (approximate minted coins)
+        Amount previousSupply = blockIndex->prev ? blockIndex->prev->moneySupply : 0;
+        Amount expectedReward = GetBlockReward(h);
+        Amount coinbaseValue = block.HasCoinbase() ? block.GetCoinbaseTransaction().GetOutputValue() : 0;
+        Amount minted = std::min(expectedReward, coinbaseValue);
+        Amount newSupply = previousSupply;
+        if (!SafeAdd(previousSupply, minted, newSupply)) {
+            LOG_ERROR("Blockchain", "Money supply overflow while loading block " + std::to_string(h));
+            return false;
+        }
+        blockIndex->moneySupply = newSupply;
 
         // Mark as main chain and add to height index
         blockIndex->isMainChain = true;

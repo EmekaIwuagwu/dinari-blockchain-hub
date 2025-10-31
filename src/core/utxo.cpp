@@ -46,9 +46,8 @@ void UTXOSet::AddUTXO(const OutPoint& outpoint, const UTXOEntry& entry) {
     utxos[outpoint] = entry;
 
     // Update address index
-    Hash160 addr = ExtractAddressFromScript(entry.output.scriptPubKey);
-    if (!addr.empty()) {
-        addressIndex[addr].push_back(outpoint);
+    if (auto addr = ExtractAddressFromScript(entry.output.scriptPubKey)) {
+        addressIndex[*addr].push_back(outpoint);
     }
 }
 
@@ -66,12 +65,11 @@ bool UTXOSet::RemoveUTXO(const OutPoint& outpoint) {
     }
 
     // Remove from address index
-    Hash160 addr = ExtractAddressFromScript(it->second.output.scriptPubKey);
-    if (!addr.empty()) {
-        auto& vec = addressIndex[addr];
+    if (auto addr = ExtractAddressFromScript(it->second.output.scriptPubKey)) {
+        auto& vec = addressIndex[*addr];
         vec.erase(std::remove(vec.begin(), vec.end(), outpoint), vec.end());
         if (vec.empty()) {
-            addressIndex.erase(addr);
+            addressIndex.erase(*addr);
         }
     }
 
@@ -141,9 +139,8 @@ bool UTXOSet::ApplyTransaction(const Transaction& tx, BlockHeight height) {
         utxos[outpoint] = entry;
 
         // Update address index
-        Hash160 addr = ExtractAddressFromScript(tx.outputs[i].scriptPubKey);
-        if (!addr.empty()) {
-            addressIndex[addr].push_back(outpoint);
+        if (auto addr = ExtractAddressFromScript(tx.outputs[i].scriptPubKey)) {
+            addressIndex[*addr].push_back(outpoint);
         }
     }
 
@@ -308,14 +305,13 @@ void UTXOSet::BuildAddressIndex() {
     addressIndex.clear();
 
     for (const auto& [outpoint, entry] : utxos) {
-        Hash160 addr = ExtractAddressFromScript(entry.output.scriptPubKey);
-        if (!addr.empty()) {
-            addressIndex[addr].push_back(outpoint);
+        if (auto addr = ExtractAddressFromScript(entry.output.scriptPubKey)) {
+            addressIndex[*addr].push_back(outpoint);
         }
     }
 }
 
-Hash160 UTXOSet::ExtractAddressFromScript(const bytes& script) const {
+std::optional<Hash160> UTXOSet::ExtractAddressFromScript(const bytes& script) const {
     // P2PKH (Pay to Public Key Hash)
     // Format: OP_DUP OP_HASH160 <20 bytes> OP_EQUALVERIFY OP_CHECKSIG
     if (script.size() == 25 &&
@@ -366,7 +362,7 @@ Hash160 UTXOSet::ExtractAddressFromScript(const bytes& script) const {
     }
 
     // Unknown script type
-    return Hash160{};
+    return std::nullopt;
 }
 
 // UTXOCache implementation

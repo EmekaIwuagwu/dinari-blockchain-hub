@@ -161,28 +161,31 @@ bool BlockStore::SetChainHeight(BlockHeight height) {
     return db->Write(MakeHeightKey(), heightBytes);
 }
 
-std::optional<uint64_t> BlockStore::GetTotalWork() const {
+std::optional<boost::multiprecision::uint256_t> BlockStore::GetTotalWork() const {
     if (!db || !db->IsOpen()) return std::nullopt;
 
     auto workBytes = db->Read(MakeWorkKey());
-    if (!workBytes || workBytes->size() != 8) {
+    if (!workBytes || workBytes->size() != 32) {
         return std::nullopt;
     }
 
-    uint64_t work = 0;
-    for (size_t i = 0; i < 8; ++i) {
-        work |= uint64_t((*workBytes)[i]) << (8 * i);
+    boost::multiprecision::uint256_t work = 0;
+    for (int i = 31; i >= 0; --i) {
+        work <<= 8;
+        work |= static_cast<uint8_t>((*workBytes)[i]);
     }
 
     return work;
 }
 
-bool BlockStore::SetTotalWork(const uint64_t& work) {
+bool BlockStore::SetTotalWork(const boost::multiprecision::uint256_t& work) {
     if (!db || !db->IsOpen()) return false;
 
-    bytes workBytes(8);
-    for (size_t i = 0; i < 8; ++i) {
-        workBytes[i] = static_cast<byte>((work >> (8 * i)) & 0xFF);
+    bytes workBytes(32);
+    boost::multiprecision::uint256_t temp = work;
+    for (size_t i = 0; i < 32; ++i) {
+        workBytes[i] = static_cast<byte>(temp & 0xFF);
+        temp >>= 8;
     }
 
     return db->Write(MakeWorkKey(), workBytes);

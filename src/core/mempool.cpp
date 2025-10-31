@@ -1,5 +1,6 @@
 #include "mempool.h"
 #include "utxo.h"
+#include "consensus/validation.h"
 #include "util/logger.h"
 #include "util/time.h"
 #include "dinari/constants.h"
@@ -324,9 +325,13 @@ bool MemPool::ValidateForMempool(const Transaction& tx, const UTXOSet& utxos,
         return false;
     }
 
-    // Check against UTXO set
-    if (!utxos.ValidateTransaction(tx, currentHeight)) {
-        error = "Transaction validation against UTXO failed";
+    // Full consensus checks (including script verification)
+    auto consensusResult = ConsensusValidator::ValidateTransaction(tx, currentHeight, utxos, false);
+    if (!consensusResult) {
+        error = consensusResult.error;
+        if (error.empty()) {
+            error = "Consensus validation failed";
+        }
         return false;
     }
 

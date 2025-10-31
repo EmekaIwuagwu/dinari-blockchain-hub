@@ -180,6 +180,9 @@ public:
     bool Verify(const bytes& scriptSig, const bytes& scriptPubKey,
                const class Transaction& tx, size_t inputIndex);
 
+    // Retrieve the last error message
+    std::string GetLastError() const { return lastError; }
+
     // Get last error
     std::string GetLastError() const { return lastError; }
 
@@ -187,9 +190,11 @@ private:
     std::stack<bytes> stack;
     std::stack<bytes> altStack;
     std::string lastError;
+    const bytes* currentScriptCode;
 
     // Execute script
-    bool ExecuteScript(const bytes& script, const Transaction& tx, size_t inputIndex);
+    bool ExecuteScript(const bytes& script, const Transaction& tx, size_t inputIndex,
+                       const bytes* scriptCode = nullptr);
 
     // Execute individual opcode
     bool ExecuteOpcode(OpCode opcode, const Transaction& tx, size_t inputIndex);
@@ -209,6 +214,8 @@ private:
 
     // Crypto operations
     bool OpCheckSig(const Transaction& tx, size_t inputIndex);
+
+    static const bytes& EmptyScript();
 
     // Flow control
     bool OpIf();

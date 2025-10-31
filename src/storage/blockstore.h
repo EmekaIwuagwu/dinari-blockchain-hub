@@ -6,6 +6,7 @@
 #include "blockchain/block.h"
 #include <memory>
 #include <optional>
+#include <boost/multiprecision/cpp_int.hpp>
 
 namespace dinari {
 
@@ -88,12 +89,12 @@ public:
     /**
      * @brief Get total chain work
      */
-    std::optional<uint64_t> GetTotalWork() const;
+    std::optional<boost::multiprecision::uint256_t> GetTotalWork() const;
 
     /**
      * @brief Set total chain work
      */
-    bool SetTotalWork(const uint64_t& work);
+    bool SetTotalWork(const boost::multiprecision::uint256_t& work);
 
     /**
      * @brief Delete block

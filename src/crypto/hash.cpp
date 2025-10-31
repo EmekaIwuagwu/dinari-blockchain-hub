@@ -17,6 +17,35 @@
 #include <iomanip>
 #include <cstring>
 #include <algorithm>
+#include <boost/multiprecision/cpp_int.hpp>
+
+namespace {
+using boost::multiprecision::uint256_t;
+
+uint256_t Uint256FromHash(const dinari::Hash256& hash) {
+    uint256_t value = 0;
+    for (int i = 31; i >= 0; --i) {
+        value <<= 8;
+        value |= hash[i];
+    }
+    return value;
+}
+
+dinari::Hash256 HashFromUint256(const uint256_t& value) {
+    dinari::Hash256 result{};
+    uint256_t temp = value;
+    for (size_t i = 0; i < result.size(); ++i) {
+        result[i] = static_cast<dinari::byte>(temp & 0xff);
+        temp >>= 8;
+    }
+    return result;
+}
+
+const uint256_t& MaxUint256() {
+    static const uint256_t max = (uint256_t(1) << 256) - 1;
+    return max;
+}
+} // namespace
 
 namespace dinari {
 namespace crypto {
@@ -226,70 +255,67 @@ bytes Hash::Scrypt(const std::string& password, const bytes& salt,
 // Proof of Work functions
 bool Hash::CheckProofOfWork(const Hash256& hash, uint32_t target) {
     Hash256 targetHash = CompactToTarget(target);
+    uint256_t targetValue = Uint256FromHash(targetHash);
 
-    // Compare hashes (little-endian comparison)
-    for (int i = 31; i >= 0; --i) {
-        if (hash[i] < targetHash[i]) return true;
-        if (hash[i] > targetHash[i]) return false;
+    if (targetValue == 0 || targetValue > MaxUint256()) {
+        return false;
     }
-    return true;  // Equal is valid
+
+    uint256_t hashValue = Uint256FromHash(hash);
+    return hashValue <= targetValue;
 }
 
 Hash256 Hash::CompactToTarget(uint32_t compact) {
-    Hash256 target{};
+    uint32_t exponent = compact >> 24;
+    uint32_t mantissa = compact & 0x007fffff;
+    bool negative = (compact & 0x00800000) != 0;
 
-    int size = compact >> 24;
-    uint32_t word = compact & 0x007fffff;
-
-    if (size <= 3) {
-        word >>= 8 * (3 - size);
-        target[0] = (word >> 16) & 0xff;
-        target[1] = (word >> 8) & 0xff;
-        target[2] = word & 0xff;
-    } else {
-        int offset = size - 3;
-        if (offset < 29) {
-            target[offset] = word & 0xff;
-            target[offset + 1] = (word >> 8) & 0xff;
-            target[offset + 2] = (word >> 16) & 0xff;
-        }
+    if (negative || mantissa == 0) {
+        return Hash256{};
     }
 
-    return target;
+    uint256_t result = mantissa;
+    int32_t shift = static_cast<int32_t>(exponent) - 3;
+
+    if (shift > 0) {
+        result <<= static_cast<uint32_t>(shift) * 8;
+    } else if (shift < 0) {
+        result >>= static_cast<uint32_t>(-shift) * 8;
+    }
+
+    if (result > MaxUint256()) {
+        result = MaxUint256();
+    }
+
+    return HashFromUint256(result);
 }
 
 uint32_t Hash::TargetToCompact(const Hash256& target) {
-    // Find the most significant non-zero byte
-    int size = 32;
-    while (size > 0 && target[size - 1] == 0) {
-        --size;
-    }
+    uint256_t value = Uint256FromHash(target);
 
-    if (size == 0) {
+    if (value == 0) {
         return 0;
     }
 
-    uint32_t compact = 0;
-    if (size <= 3) {
-        compact = target[0] << 16;
-        if (size > 1) compact |= target[1] << 8;
-        if (size > 2) compact |= target[2];
-        compact >>= 8 * (3 - size);
+    int exponent = (boost::multiprecision::msb(value) / 8) + 1;
+    uint256_t mantissa = value;
+
+    if (exponent <= 3) {
+        mantissa <<= 8 * (3 - exponent);
     } else {
-        compact = target[size - 1];
-        compact <<= 8;
-        compact |= target[size - 2];
-        compact <<= 8;
-        compact |= target[size - 3];
+        mantissa >>= 8 * (exponent - 3);
     }
 
-    // If the sign bit is set, divide by 256 and increment size
-    if (compact & 0x00800000) {
-        compact >>= 8;
-        size++;
+    // Mask to 24 bits
+    mantissa &= uint256_t(0x007fffff);
+
+    if (mantissa & uint256_t(0x00800000)) {
+        mantissa >>= 8;
+        exponent++;
     }
 
-    compact |= size << 24;
+    uint32_t compact = static_cast<uint32_t>(mantissa.convert_to<uint32_t>());
+    compact |= static_cast<uint32_t>(exponent) << 24;
     return compact;
 }
 

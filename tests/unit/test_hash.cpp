@@ -4,6 +4,10 @@
  */
 
 #include "crypto/hash.h"
+#include "core/script.h"
+#include "core/transaction.h"
+#include "core/utxo.h"
+#include "consensus/validation.h"
 #include <gtest/gtest.h>
 
 using namespace dinari::crypto;
@@ -174,6 +178,64 @@ TEST(HashTest, TargetConversion) {
 
     // Should be same (or very close due to rounding)
     EXPECT_EQ(compact, compact2);
+}
+
+TEST(ScriptTest, P2PKHSignatureRoundTrip) {
+    using namespace dinari;
+
+    Hash256 prevTx{};
+    prevTx[0] = 1;
+    OutPoint prevOut(prevTx, 0);
+
+    Hash256 privKey = crypto::ECDSA::GeneratePrivateKey();
+    bytes pubKey = crypto::ECDSA::GetPublicKey(privKey, true);
+    Hash160 pubKeyHash = crypto::Hash::ComputeHash160(pubKey);
+    bytes scriptPubKey = Script::CreateP2PKH(pubKeyHash).GetCode();
+
+    TxOut utxoOutput(10 * COIN, scriptPubKey);
+
+    Transaction spendTx;
+    spendTx.inputs.emplace_back(prevOut);
+    spendTx.outputs.emplace_back(9 * COIN, bytes{});
+
+    bytes scriptSig = SignTransactionInput(spendTx, 0, scriptPubKey, privKey);
+    spendTx.inputs[0].scriptSig = scriptSig;
+
+    ScriptEngine engine;
+    EXPECT_TRUE(engine.Verify(spendTx.inputs[0].scriptSig, scriptPubKey, spendTx, 0));
+
+    UTXOSet utxos;
+    utxos.AddUTXO(prevOut, utxoOutput, 1, false);
+    auto result = ConsensusValidator::ValidateTransaction(spendTx, 1, utxos, false);
+    EXPECT_TRUE(result);
+}
+
+TEST(ScriptTest, InvalidSignatureRejected) {
+    using namespace dinari;
+
+    Hash256 prevTx{};
+    prevTx[0] = 2;
+    OutPoint prevOut(prevTx, 0);
+
+    Hash256 privKey = crypto::ECDSA::GeneratePrivateKey();
+    bytes pubKey = crypto::ECDSA::GetPublicKey(privKey, true);
+    Hash160 pubKeyHash = crypto::Hash::ComputeHash160(pubKey);
+    bytes scriptPubKey = Script::CreateP2PKH(pubKeyHash).GetCode();
+
+    TxOut utxoOutput(5 * COIN, scriptPubKey);
+
+    Transaction spendTx;
+    spendTx.inputs.emplace_back(prevOut);
+    spendTx.outputs.emplace_back(4 * COIN, bytes{});
+
+    bytes scriptSig = SignTransactionInput(spendTx, 0, scriptPubKey, privKey);
+    if (!scriptSig.empty()) {
+        scriptSig.back() ^= 0x01;  // Corrupt hash type/signature
+    }
+    spendTx.inputs[0].scriptSig = scriptSig;
+
+    ScriptEngine engine;
+    EXPECT_FALSE(engine.Verify(spendTx.inputs[0].scriptSig, scriptPubKey, spendTx, 0));
 }
 
 // Main function

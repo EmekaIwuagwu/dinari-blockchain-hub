@@ -1,6 +1,7 @@
 #include "validation.h"
 #include "difficulty.h"
 #include "blockchain/blockchain.h"
+#include "core/script.h"
 #include "core/utxo.h"
 #include "util/logger.h"
 #include "util/time.h"
@@ -80,10 +81,15 @@ ValidationResult ConsensusValidator::ValidateBlock(const Block& block,
         return ValidationResult::Invalid("Invalid merkle root");
     }
 
-    // Validate money supply
-    // Note: Total supply calculation requires summing all coinbase outputs in the blockchain
-    Amount totalSupply = 0;
-    auto moneyResult = ValidateMoneySupply(block, totalSupply);
+    // Validate money supply against cumulative issuance
+    Amount previousSupply = prevBlock ? prevBlock->moneySupply : 0;
+    Amount coinbaseValue = block.transactions[0].GetOutputValue();
+    Amount minted = 0;
+    if (coinbaseValue > totalFees) {
+        minted = coinbaseValue - totalFees;
+    }
+
+    auto moneyResult = ValidateMoneySupply(previousSupply, minted);
     if (!moneyResult) {
         return moneyResult;
     }
@@ -227,11 +233,13 @@ ValidationResult ConsensusValidator::ValidateBlockTime(Timestamp timestamp,
     return ValidationResult::Valid();
 }
 
-ValidationResult ConsensusValidator::ValidateMoneySupply(const Block& block,
-                                                         Amount totalSupply) {
-    Amount blockValue = block.GetBlockReward();
+ValidationResult ConsensusValidator::ValidateMoneySupply(Amount totalSupply,
+                                                         Amount newlyMinted) {
+    if (!MoneyRange(totalSupply) || !MoneyRange(newlyMinted)) {
+        return ValidationResult::Invalid("Money supply out of range");
+    }
 
-    if (totalSupply + blockValue > MAX_MONEY) {
+    if (newlyMinted > 0 && totalSupply > MAX_MONEY - newlyMinted) {
         return ValidationResult::Invalid("Block would exceed maximum money supply");
     }
 
@@ -273,7 +281,8 @@ bool ConsensusValidator::CheckTransactionInputs(const Transaction& tx,
                                                std::string& error) {
     Amount totalIn = 0;
 
-    for (const auto& input : tx.inputs) {
+    for (size_t inputIndex = 0; inputIndex < tx.inputs.size(); ++inputIndex) {
+        const auto& input = tx.inputs[inputIndex];
         // Check UTXO exists
         const UTXOEntry* utxo = utxos.GetUTXOEntry(input.prevOut);
         if (!utxo) {
@@ -292,6 +301,17 @@ bool ConsensusValidator::CheckTransactionInputs(const Transaction& tx,
         // Check for overflow
         if (!MoneyRange(totalIn)) {
             error = "Input value overflow";
+            return false;
+        }
+
+        // Verify script
+        ScriptEngine engine;
+        if (!engine.Verify(input.scriptSig, utxo->output.scriptPubKey, tx, inputIndex)) {
+            error = "Script verification failed";
+            const std::string lastError = engine.GetLastError();
+            if (!lastError.empty()) {
+                error += ": " + lastError;
+            }
             return false;
         }
     }

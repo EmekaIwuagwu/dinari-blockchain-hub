@@ -133,14 +133,14 @@ public:
                                              const BlockIndex* prevBlock);
 
     /**
-     * @brief Check if block would cause chain to exceed max money supply
+     * @brief Check if newly minted coins would exceed maximum supply
      *
-     * @param block Block to check
-     * @param totalSupply Current total supply
+     * @param totalSupply Current total supply prior to block
+     * @param newlyMinted Coins created in the candidate block
      * @return Validation result
      */
-    static ValidationResult ValidateMoneySupply(const Block& block,
-                                               Amount totalSupply);
+    static ValidationResult ValidateMoneySupply(Amount totalSupply,
+                                                Amount newlyMinted);
 
 private:
     // Helper methods
