@@ -9,6 +9,8 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <atomic>
+#include <thread>
 
 namespace dinari {
 
@@ -29,33 +31,34 @@ struct WalletConfig {
 };
 
 /**
- * @brief Transaction builder
+ * @brief Wallet transaction builder
  *
- * Helps create and sign transactions
+ * Helps create and sign transactions with fee management
+ * (Different from core::TransactionBuilder which is simpler)
  */
-class TransactionBuilder {
+class WalletTransactionBuilder {
 public:
-    TransactionBuilder();
+    WalletTransactionBuilder();
 
     /**
      * @brief Add input
      */
-    TransactionBuilder& AddInput(const OutPoint& outpoint, const TxOut& prevOut);
+    WalletTransactionBuilder& AddInput(const OutPoint& outpoint, const TxOut& prevOut);
 
     /**
      * @brief Add output
      */
-    TransactionBuilder& AddOutput(const Address& addr, Amount value);
+    WalletTransactionBuilder& AddOutput(const Address& addr, Amount value);
 
     /**
      * @brief Set change address
      */
-    TransactionBuilder& SetChangeAddress(const Address& addr);
+    WalletTransactionBuilder& SetChangeAddress(const Address& addr);
 
     /**
      * @brief Set fee rate (satoshis per byte)
      */
-    TransactionBuilder& SetFeeRate(Amount feeRate);
+    WalletTransactionBuilder& SetFeeRate(Amount feeRate);
 
     /**
      * @brief Build unsigned transaction

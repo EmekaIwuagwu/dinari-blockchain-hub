@@ -177,6 +177,8 @@ void WalletRPC::RegisterCommands(RPCServer& server) {
 // Command implementations
 
 JSONValue WalletRPC::GetNewAddress(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;
+    (void)node;
     RPCHelper::CheckParamsRange(req, 0, 1);
 
     if (!wallet) {
@@ -197,6 +199,8 @@ JSONValue WalletRPC::GetNewAddress(const RPCRequest& req, Blockchain& chain, Wal
 }
 
 JSONValue WalletRPC::GetAddressInfo(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;
+    (void)node;
     RPCHelper::CheckParams(req, 1);
 
     if (!wallet) {
@@ -219,6 +223,8 @@ JSONValue WalletRPC::GetAddressInfo(const RPCRequest& req, Blockchain& chain, Wa
 }
 
 JSONValue WalletRPC::ListAddresses(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     if (!wallet) {
@@ -239,6 +245,8 @@ JSONValue WalletRPC::ListAddresses(const RPCRequest& req, Blockchain& chain, Wal
 }
 
 JSONValue WalletRPC::ValidateAddress(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;
+    (void)node;
     RPCHelper::CheckParams(req, 1);
 
     std::string addrStr = RPCHelper::GetStringParam(req, 0);
@@ -258,6 +266,8 @@ JSONValue WalletRPC::ValidateAddress(const RPCRequest& req, Blockchain& chain, W
 }
 
 JSONValue WalletRPC::GetBalance(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     if (!wallet) {
@@ -273,6 +283,8 @@ JSONValue WalletRPC::GetBalance(const RPCRequest& req, Blockchain& chain, Wallet
 }
 
 JSONValue WalletRPC::GetUnconfirmedBalance(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     if (!wallet) {
@@ -288,6 +300,8 @@ JSONValue WalletRPC::GetUnconfirmedBalance(const RPCRequest& req, Blockchain& ch
 JSONValue WalletRPC::ListUnspent(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
     RPCHelper::CheckParamsRange(req, 0, 2);
 
+    (void)chain;
+    (void)node;
     if (!wallet) {
         RPCHelper::ThrowError(RPC_WALLET_ERROR, "Wallet not loaded");
     }
@@ -301,8 +315,8 @@ JSONValue WalletRPC::ListUnspent(const RPCRequest& req, Blockchain& chain, Walle
         if (i > 0) oss << ",";
 
         JSONObject obj;
-        obj.SetString("txid", utxos[i].first.hash.ToHex());
-        obj.SetInt("vout", utxos[i].first.n);
+        obj.SetString("txid", crypto::Hash::ToHex(utxos[i].first.txHash));
+        obj.SetInt("vout", utxos[i].first.index);
         obj.SetDouble("amount", static_cast<double>(utxos[i].second.value) / COIN);
 
         oss << obj.Serialize();
@@ -314,6 +328,7 @@ JSONValue WalletRPC::ListUnspent(const RPCRequest& req, Blockchain& chain, Walle
 }
 
 JSONValue WalletRPC::SendToAddress(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;
     RPCHelper::CheckParamsRange(req, 2, 3);
 
     if (!wallet) {
@@ -361,6 +376,7 @@ JSONValue WalletRPC::SendToAddress(const RPCRequest& req, Blockchain& chain, Wal
 
 JSONValue WalletRPC::SendToken(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
     // Enhanced token sending API with detailed request/response
+    (void)chain;
 
     if (!wallet) {
         RPCHelper::ThrowError(RPC_WALLET_ERROR, "Wallet not loaded");
@@ -376,16 +392,36 @@ JSONValue WalletRPC::SendToken(const RPCRequest& req, Blockchain& chain, Wallet*
         RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Missing request parameters");
     }
 
-    std::string requestJson = req.params[0];
+    // Parse JSON from first parameter
     JSONObject requestObj;
-    if (!requestObj.Parse(requestJson)) {
+    try {
+        if (req.params[0].IsString()) {
+            requestObj = JSONObject::Parse(req.params[0].GetString());
+        } else if (req.params[0].IsObject()) {
+            // Already an object - this shouldn't normally happen but handle it
+            RPCHelper::ThrowError(RPC_PARSE_ERROR, "Expected JSON string, got object");
+        } else {
+            RPCHelper::ThrowError(RPC_PARSE_ERROR, "Invalid parameter type");
+        }
+    } catch (const std::exception&) {
         RPCHelper::ThrowError(RPC_PARSE_ERROR, "Invalid JSON in request");
     }
 
     // Extract parameters
-    std::string addressTo = requestObj.GetString("addressTo", "");
-    double amount = requestObj.GetDouble("amount", 0.0);
-    std::string addressFrom = requestObj.GetString("addressFrom", "");  // Optional, for display purposes
+    std::string addressTo = "";
+    if (requestObj.Has("addressTo")) {
+        addressTo = requestObj.Get("addressTo").GetString();
+    }
+
+    double amount = 0.0;
+    if (requestObj.Has("amount")) {
+        amount = requestObj.Get("amount").GetDouble();
+    }
+
+    std::string addressFrom = "";
+    if (requestObj.Has("addressFrom")) {
+        addressFrom = requestObj.Get("addressFrom").GetString();
+    }
 
     if (addressTo.empty()) {
         RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Missing 'addressTo' parameter");
@@ -462,6 +498,8 @@ JSONValue WalletRPC::SendToken(const RPCRequest& req, Blockchain& chain, Wallet*
 }
 
 JSONValue WalletRPC::ListTransactions(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;
+    (void)node;
     RPCHelper::CheckParamsRange(req, 0, 1);
 
     if (!wallet) {
@@ -492,6 +530,8 @@ JSONValue WalletRPC::ListTransactions(const RPCRequest& req, Blockchain& chain, 
 }
 
 JSONValue WalletRPC::GetTransaction(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused
+    (void)node;   // Unused
     RPCHelper::CheckParams(req, 1);
 
     if (!wallet) {
@@ -501,7 +541,9 @@ JSONValue WalletRPC::GetTransaction(const RPCRequest& req, Blockchain& chain, Wa
     std::string txidStr = RPCHelper::GetStringParam(req, 0);
 
     Hash256 txid;
-    if (!txid.FromHex(txidStr)) {
+    try {
+        txid = crypto::Hash::FromHex256(txidStr);
+    } catch (const std::exception&) {
         RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Invalid transaction id");
     }
 
@@ -514,6 +556,8 @@ JSONValue WalletRPC::GetTransaction(const RPCRequest& req, Blockchain& chain, Wa
 }
 
 JSONValue WalletRPC::GetWalletInfo(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused
+    (void)node;   // Unused
     RPCHelper::CheckParams(req, 0);
 
     if (!wallet) {
@@ -535,6 +579,8 @@ JSONValue WalletRPC::GetWalletInfo(const RPCRequest& req, Blockchain& chain, Wal
 }
 
 JSONValue WalletRPC::EncryptWallet(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused
+    (void)node;   // Unused
     RPCHelper::CheckParams(req, 1);
 
     if (!wallet) {
@@ -559,6 +605,8 @@ JSONValue WalletRPC::EncryptWallet(const RPCRequest& req, Blockchain& chain, Wal
 }
 
 JSONValue WalletRPC::WalletLock(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused
+    (void)node;   // Unused
     RPCHelper::CheckParams(req, 0);
 
     if (!wallet) {
@@ -575,6 +623,8 @@ JSONValue WalletRPC::WalletLock(const RPCRequest& req, Blockchain& chain, Wallet
 }
 
 JSONValue WalletRPC::WalletPassphrase(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused parameter
+    (void)node;   // Unused parameter
     RPCHelper::CheckParams(req, 2);
 
     if (!wallet) {
@@ -604,6 +654,8 @@ JSONValue WalletRPC::WalletPassphrase(const RPCRequest& req, Blockchain& chain, 
 }
 
 JSONValue WalletRPC::WalletPassphraseChange(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused parameter
+    (void)node;   // Unused parameter
     RPCHelper::CheckParams(req, 2);
 
     if (!wallet) {
@@ -629,6 +681,8 @@ JSONValue WalletRPC::WalletPassphraseChange(const RPCRequest& req, Blockchain& c
 }
 
 JSONValue WalletRPC::ImportMnemonic(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused parameter
+    (void)node;   // Unused parameter
     RPCHelper::CheckParamsRange(req, 1, 2);
 
     if (!wallet) {
@@ -658,6 +712,8 @@ JSONValue WalletRPC::ImportMnemonic(const RPCRequest& req, Blockchain& chain, Wa
 }
 
 JSONValue WalletRPC::ImportPrivKey(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused in this function
+    (void)node;   // Unused in this function
     RPCHelper::CheckParamsRange(req, 1, 2);
 
     if (!wallet) {
@@ -676,7 +732,9 @@ JSONValue WalletRPC::ImportPrivKey(const RPCRequest& req, Blockchain& chain, Wal
     }
 
     Hash256 privKey;
-    if (!privKey.FromHex(privKeyStr)) {
+    try {
+        privKey = crypto::Hash::FromHex256(privKeyStr);
+    } catch (const std::exception&) {
         RPCHelper::ThrowError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key");
     }
 

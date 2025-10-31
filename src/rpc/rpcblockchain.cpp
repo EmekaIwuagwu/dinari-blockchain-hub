@@ -123,6 +123,8 @@ void BlockchainRPC::RegisterCommands(RPCServer& server) {
 // Command implementations
 
 JSONValue BlockchainRPC::GetBlockCount(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     const BlockIndex* tip = chain.GetBestBlock();
@@ -134,6 +136,8 @@ JSONValue BlockchainRPC::GetBlockCount(const RPCRequest& req, Blockchain& chain,
 }
 
 JSONValue BlockchainRPC::GetBlockHash(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParams(req, 1);
 
     int64_t height = RPCHelper::GetIntParam(req, 0);
@@ -142,15 +146,17 @@ JSONValue BlockchainRPC::GetBlockHash(const RPCRequest& req, Blockchain& chain, 
         RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Block height out of range");
     }
 
-    Hash256 blockHash = chain.GetBlockHash(static_cast<BlockHeight>(height));
-    if (blockHash == Hash256{0}) {
-        RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Block height out of range");
+    const BlockIndex* blockIndex = chain.GetBlockIndex(static_cast<BlockHeight>(height));
+    if (!blockIndex || !blockIndex->block) {
+        RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Block not found");
     }
 
-    return JSONValue(blockHash.ToHex());
+    return JSONValue(crypto::Hash::ToHex(blockIndex->block->GetHash()));
 }
 
 JSONValue BlockchainRPC::GetBlock(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParamsRange(req, 1, 2);
 
     std::string hashStr = RPCHelper::GetStringParam(req, 0);
@@ -161,7 +167,9 @@ JSONValue BlockchainRPC::GetBlock(const RPCRequest& req, Blockchain& chain, Wall
     }
 
     Hash256 blockHash;
-    if (!blockHash.FromHex(hashStr)) {
+    try {
+        blockHash = crypto::Hash::FromHex256(hashStr);
+    } catch (const std::exception&) {
         RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Invalid block hash");
     }
 
@@ -172,8 +180,9 @@ JSONValue BlockchainRPC::GetBlock(const RPCRequest& req, Blockchain& chain, Wall
 
     if (!verbose) {
         // Return hex-encoded block
-        bytes serialized = block->Serialize();
-        return JSONValue(block->GetHash().ToHex());  // Simplified
+        Serializer s;
+        block->SerializeImpl(s);
+        return JSONValue(crypto::Hash::ToHex(block->GetHash()));  // Simplified
     }
 
     // Return JSON object with block details
@@ -186,6 +195,8 @@ JSONValue BlockchainRPC::GetBlock(const RPCRequest& req, Blockchain& chain, Wall
 }
 
 JSONValue BlockchainRPC::GetBestBlockHash(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     const BlockIndex* tip = chain.GetBestBlock();
@@ -193,10 +204,12 @@ JSONValue BlockchainRPC::GetBestBlockHash(const RPCRequest& req, Blockchain& cha
         return JSONValue("");
     }
 
-    return JSONValue(tip->hash.ToHex());
+    return JSONValue(tip->crypto::Hash::ToHex(hash));
 }
 
 JSONValue BlockchainRPC::GetDifficulty(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     const BlockIndex* tip = chain.GetBestBlock();
@@ -211,8 +224,10 @@ JSONValue BlockchainRPC::GetDifficulty(const RPCRequest& req, Blockchain& chain,
 
     return JSONValue(difficulty);
 }
+    (void)wallet;
 
 JSONValue BlockchainRPC::GetBlockchainInfo(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     JSONObject obj;
@@ -222,21 +237,25 @@ JSONValue BlockchainRPC::GetBlockchainInfo(const RPCRequest& req, Blockchain& ch
     obj.SetString("chain", "main");
     obj.SetInt("blocks", tip ? tip->height : 0);
     obj.SetInt("headers", tip ? tip->height : 0);
-    obj.SetString("bestblockhash", tip ? tip->hash.ToHex() : "");
+    obj.SetString("bestblockhash", tip ? tip->crypto::Hash::ToHex(hash) : "");
     obj.SetDouble("difficulty", tip ? static_cast<double>(tip->bits) : 1.0);
-    obj.SetString("chainwork", tip ? tip->chainWork.ToHex() : "");
+    obj.SetString("chainwork", tip ? tip->crypto::Hash::ToHex(chainWork) : "");
 
     return JSONValue(obj.Serialize());
 }
 
 JSONValue BlockchainRPC::GetTxOut(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParams(req, 2);
 
     std::string txidStr = RPCHelper::GetStringParam(req, 0);
     int64_t n = RPCHelper::GetIntParam(req, 1);
 
     Hash256 txid;
-    if (!txid.FromHex(txidStr)) {
+    try {
+        txid = crypto::Hash::FromHex256(txidStr);
+    } catch (const std::exception&) {
         RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Invalid transaction id");
     }
 
@@ -245,8 +264,8 @@ JSONValue BlockchainRPC::GetTxOut(const RPCRequest& req, Blockchain& chain, Wall
     }
 
     OutPoint outpoint;
-    outpoint.hash = txid;
-    outpoint.n = static_cast<uint32_t>(n);
+    outpoint.txHash = txid;
+    outpoint.index = static_cast<uint32_t>(n);
 
     const UTXOSet& utxos = chain.GetUTXOs();
     UTXOEntry entry;
@@ -258,7 +277,7 @@ JSONValue BlockchainRPC::GetTxOut(const RPCRequest& req, Blockchain& chain, Wall
 
     // Return UTXO details
     JSONObject obj;
-    obj.SetString("bestblock", chain.GetBestBlock()->hash.ToHex());
+    obj.SetString("bestblock", chain.GetBestBlock()->crypto::Hash::ToHex(hash));
     obj.SetInt("confirmations", chain.GetBestBlock()->height - entry.height + 1);
     obj.SetInt("value", entry.output.value);
     obj.SetInt("height", entry.height);
@@ -267,6 +286,8 @@ JSONValue BlockchainRPC::GetTxOut(const RPCRequest& req, Blockchain& chain, Wall
     return JSONValue(obj.Serialize());
 }
 
+    (void)wallet;
+    (void)node;
 JSONValue BlockchainRPC::GetMempoolInfo(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
     RPCHelper::CheckParams(req, 0);
 
@@ -282,6 +303,8 @@ JSONValue BlockchainRPC::GetMempoolInfo(const RPCRequest& req, Blockchain& chain
     return JSONValue(obj.Serialize());
 }
 
+    (void)wallet;
+    (void)node;
 JSONValue BlockchainRPC::GetRawMempool(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
     RPCHelper::CheckParamsRange(req, 0, 1);
 
@@ -312,12 +335,19 @@ JSONValue BlockchainRPC::GetRawMempool(const RPCRequest& req, Blockchain& chain,
     }
 
     return JSONValue(obj.Serialize());
+    (void)req;
+    (void)chain;
+    (void)wallet;
+    (void)node;
 }
 
 JSONValue BlockchainRPC::Help(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
     // Note: Enhanced help system with command listing can be added in future updates
     JSONValue result("Help: List of available RPC commands");
     return result;
+    (void)chain;
+    (void)wallet;
+    (void)node;
 }
 
 JSONValue BlockchainRPC::Stop(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
@@ -333,6 +363,8 @@ JSONValue BlockchainRPC::Stop(const RPCRequest& req, Blockchain& chain, Wallet* 
 // Blockchain Explorer implementations
 
 JSONValue BlockchainRPC::GetRawTransaction(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParamsRange(req, 1, 2);
 
     std::string txidStr = RPCHelper::GetStringParam(req, 0);
@@ -343,7 +375,9 @@ JSONValue BlockchainRPC::GetRawTransaction(const RPCRequest& req, Blockchain& ch
     }
 
     Hash256 txid;
-    if (!txid.FromHex(txidStr)) {
+    try {
+        txid = crypto::Hash::FromHex256(txidStr);
+    } catch (const std::exception&) {
         RPCHelper::ThrowError(RPC_INVALID_PARAMETER, "Invalid transaction id");
     }
 
@@ -411,12 +445,12 @@ JSONValue BlockchainRPC::GetRawTransaction(const RPCRequest& req, Blockchain& ch
     // Add inputs
     std::ostringstream vinOss;
     vinOss << "[";
-    for (size_t i = 0; i < tx.vin.size(); ++i) {
+    for (size_t i = 0; i < tx.inputs.size(); ++i) {
         if (i > 0) vinOss << ",";
-        vinOss << "{\"prevout\":{\"hash\":\"" << tx.vin[i].prevOut.hash.ToHex()
-               << "\",\"n\":" << tx.vin[i].prevOut.n << "},"
+        vinOss << "{\"prevout\":{\"hash\":\"" << crypto::Hash::ToHex(tx.inputs[i].prevOut.txHash)
+               << "\",\"n\":" << tx.inputs[i].prevOut.index << "},"
                << "\"scriptSig\":\"" << "..." << "\","  // Simplified
-               << "\"sequence\":" << tx.vin[i].sequence << "}";
+               << "\"sequence\":" << tx.inputs[i].sequence << "}";
     }
     vinOss << "]";
     obj.SetString("vin", vinOss.str());
@@ -424,9 +458,9 @@ JSONValue BlockchainRPC::GetRawTransaction(const RPCRequest& req, Blockchain& ch
     // Add outputs
     std::ostringstream voutOss;
     voutOss << "[";
-    for (size_t i = 0; i < tx.vout.size(); ++i) {
+    for (size_t i = 0; i < tx.outputs.size(); ++i) {
         if (i > 0) voutOss << ",";
-        voutOss << "{\"value\":" << tx.vout[i].value
+        voutOss << "{\"value\":" << tx.outputs[i].value
                 << ",\"n\":" << i
                 << ",\"scriptPubKey\":\"" << "..." << "\"}";  // Simplified
     }
@@ -435,7 +469,7 @@ JSONValue BlockchainRPC::GetRawTransaction(const RPCRequest& req, Blockchain& ch
 
     // Add block info if confirmed
     if (confirmations > 0) {
-        obj.SetString("blockhash", blockHash.ToHex());
+        obj.SetString("blockhash", crypto::Hash::ToHex(blockHash));
         obj.SetInt("blockheight", txHeight);
         obj.SetInt("confirmations", confirmations);
 
@@ -452,6 +486,8 @@ JSONValue BlockchainRPC::GetRawTransaction(const RPCRequest& req, Blockchain& ch
 }
 
 JSONValue BlockchainRPC::ListBlocks(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParamsRange(req, 0, 2);
 
     int64_t startHeight = 0;
@@ -486,32 +522,33 @@ JSONValue BlockchainRPC::ListBlocks(const RPCRequest& req, Blockchain& chain, Wa
     bool first = true;
 
     for (int64_t height = startHeight; height <= endHeight; ++height) {
-        Hash256 blockHash = chain.GetBlockHash(static_cast<BlockHeight>(height));
-        auto block = chain.GetBlock(blockHash);
-
-        if (!block) {
+        const BlockIndex* blockIndex = chain.GetBlockIndex(static_cast<BlockHeight>(height));
+        if (!blockIndex || !blockIndex->block) {
             continue;  // Skip if block not found
         }
+
+        auto block = blockIndex->block;
 
         if (!first) oss << ",";
         first = false;
 
         oss << "{";
         oss << "\"height\":" << height << ",";
-        oss << "\"hash\":\"" << block->GetHash().ToHex() << "\",";
+        oss << "\"hash\":\"" << crypto::Hash::ToHex(block->GetHash()) << "\",";
         oss << "\"timestamp\":" << block->header.timestamp << ",";
-        oss << "\"time\":\"" << Time::FormatTime(block->header.timestamp) << "\",";
         oss << "\"tx_count\":" << block->transactions.size() << ",";
-        oss << "\"size\":" << block->Serialize().size() << ",";
+        Serializer s;
+        block->SerializeImpl(s);
+        oss << "\"size\":" << s.GetData().size() << ",";
         oss << "\"bits\":" << block->header.bits << ",";
         oss << "\"nonce\":" << block->header.nonce << ",";
-        oss << "\"merkleroot\":\"" << block->header.merkleRoot.ToHex() << "\",";
+        oss << "\"merkleroot\":\"" << crypto::Hash::ToHex(block->header.merkleRoot) << "\",";
 
         // Add transaction hashes
         oss << "\"transactions\":[";
         for (size_t i = 0; i < block->transactions.size(); ++i) {
             if (i > 0) oss << ",";
-            oss << "\"" << block->transactions[i].GetHash().ToHex() << "\"";
+            oss << "\"" << crypto::Hash::ToHex(block->transactions[i].GetHash()) << "\"";
         }
         oss << "],";
 
@@ -519,9 +556,9 @@ JSONValue BlockchainRPC::ListBlocks(const RPCRequest& req, Blockchain& chain, Wa
         std::string minerAddress = "unknown";
         if (!block->transactions.empty() && block->transactions[0].IsCoinbase()) {
             // Try to extract address from first output
-            if (!block->transactions[0].vout.empty()) {
+            if (!block->transactions[0].outputs.empty()) {
                 Address addr;
-                if (AddressGenerator::ExtractAddress(block->transactions[0].vout[0].scriptPubKey, addr)) {
+                if (AddressGenerator::ExtractAddress(block->transactions[0].outputs[0].scriptPubKey, addr)) {
                     minerAddress = addr.ToString();
                 }
             }

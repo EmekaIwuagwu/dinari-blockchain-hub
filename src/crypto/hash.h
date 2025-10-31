@@ -107,6 +107,17 @@ public:
                                int iterations, size_t keylen);
 
     /**
+     * @brief PBKDF2 key derivation with SHA-512 (used for BIP39 seed generation)
+     * @param password Password (or mnemonic bytes)
+     * @param salt Salt
+     * @param iterations Number of iterations (recommend 2048+ for BIP39)
+     * @param keylen Output key length
+     * @return Derived key
+     */
+    static bytes PBKDF2_SHA512(const bytes& password, const bytes& salt,
+                               int iterations, size_t keylen);
+
+    /**
      * @brief Scrypt key derivation (alternative to PBKDF2)
      * @param password Password
      * @param salt Salt

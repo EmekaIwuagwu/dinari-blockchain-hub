@@ -294,7 +294,7 @@ void RPCServer::Stop() {
 void RPCServer::RegisterCommand(const RPCCommand& command) {
     std::lock_guard<std::mutex> lock(commandsMutex);
 
-    commands[command.name] = command;
+    commands.insert_or_assign(command.name, command);
 
     LOG_DEBUG("RPC", "Registered command: " + command.name);
 }
@@ -582,13 +582,14 @@ double RPCHelper::GetDoubleParam(const RPCRequest& request, size_t index) {
 }
 
 JSONObject RPCHelper::BlockToJSON(const Block& block, const Blockchain& blockchain) {
+    (void)blockchain;  // TODO: Use blockchain to look up block height
     JSONObject obj;
 
-    obj.SetString("hash", block.GetHash().ToHex());
+    obj.SetString("hash", crypto::Hash::ToHex(block.GetHash()));
     obj.SetInt("height", 0);  // Note: Block height lookup requires blockchain index
     obj.SetInt("version", block.header.version);
-    obj.SetString("previousblockhash", block.header.prevBlockHash.ToHex());
-    obj.SetString("merkleroot", block.header.merkleRoot.ToHex());
+    obj.SetString("previousblockhash", crypto::Hash::ToHex(block.header.prevBlockHash));
+    obj.SetString("merkleroot", crypto::Hash::ToHex(block.header.merkleRoot));
     obj.SetInt("time", block.header.timestamp);
     obj.SetInt("nonce", block.header.nonce);
     obj.SetInt("bits", block.header.bits);
@@ -600,11 +601,11 @@ JSONObject RPCHelper::BlockToJSON(const Block& block, const Blockchain& blockcha
 JSONObject RPCHelper::TransactionToJSON(const Transaction& tx) {
     JSONObject obj;
 
-    obj.SetString("txid", tx.GetHash().ToHex());
+    obj.SetString("txid", crypto::Hash::ToHex(tx.GetHash()));
     obj.SetInt("version", tx.version);
     obj.SetInt("locktime", tx.lockTime);
-    obj.SetInt("vin_count", tx.vin.size());
-    obj.SetInt("vout_count", tx.vout.size());
+    obj.SetInt("vin_count", tx.inputs.size());
+    obj.SetInt("vout_count", tx.outputs.size());
 
     return obj;
 }

@@ -228,7 +228,7 @@ void NetworkNode::DisconnectPeer(uint64_t peerId) {
 }
 
 void NetworkNode::BroadcastBlock(const Block& block) {
-    LOG_INFO("Network", "Broadcasting block " + block.GetHash().ToHex());
+    LOG_INFO("Network", "Broadcasting block " + crypto::Hash::ToHex(block.GetHash()));
 
     InvItem item;
     item.type = InvType::BLOCK;
@@ -246,7 +246,7 @@ void NetworkNode::BroadcastBlock(const Block& block) {
 }
 
 void NetworkNode::BroadcastTransaction(const Transaction& tx) {
-    LOG_INFO("Network", "Broadcasting transaction " + tx.GetHash().ToHex());
+    LOG_INFO("Network", "Broadcasting transaction " + crypto::Hash::ToHex(tx.GetHash()));
 
     InvItem item;
     item.type = InvType::TX;
@@ -532,7 +532,8 @@ void NetworkNode::HandleGetDataMessage(PeerPtr peer, const GetDataMessage& msg) 
 }
 
 void NetworkNode::HandleBlockMessage(PeerPtr peer, const BlockMessage& msg) {
-    LOG_INFO("Network", "Received block " + msg.block.GetHash().ToHex());
+    (void)peer;  // Unused in this function
+    LOG_INFO("Network", "Received block " + crypto::Hash::ToHex(msg.block.GetHash()));
 
     // Process block
     if (blockchain.AcceptBlock(msg.block)) {
@@ -546,26 +547,28 @@ void NetworkNode::HandleTxMessage(PeerPtr peer, const TxMessage& msg) {
     const Transaction& tx = msg.tx;
     Hash256 txHash = tx.GetHash();
 
-    LOG_DEBUG("Network", "Received transaction " + txHash.ToHex() + " from peer " + std::to_string(peer->GetId()));
+    LOG_DEBUG("Network", "Received transaction " + crypto::Hash::ToHex(txHash) + " from peer " + std::to_string(peer->GetId()));
 
     // Basic transaction structure validation
-    if (tx.vin.empty()) {
-        LOG_WARNING("Network", "Transaction " + txHash.ToHex() + " has no inputs");
+    if (tx.inputs.empty()) {
+        LOG_WARNING("Network", "Transaction " + crypto::Hash::ToHex(txHash) + " has no inputs");
         peer->Misbehaving(10);
         return;
     }
 
-    if (tx.vout.empty()) {
-        LOG_WARNING("Network", "Transaction " + txHash.ToHex() + " has no outputs");
+    if (tx.outputs.empty()) {
+        LOG_WARNING("Network", "Transaction " + crypto::Hash::ToHex(txHash) + " has no outputs");
         peer->Misbehaving(10);
         return;
     }
 
     // Check transaction size (max 1MB = 1,000,000 bytes)
     const size_t MAX_TX_SIZE = 1000000;
-    bytes serialized = tx.Serialize();
+    Serializer txSer;
+    tx.SerializeImpl(txSer);
+    bytes serialized = txSer.GetData();
     if (serialized.size() > MAX_TX_SIZE) {
-        LOG_WARNING("Network", "Transaction " + txHash.ToHex() + " exceeds max size: " +
+        LOG_WARNING("Network", "Transaction " + crypto::Hash::ToHex(txHash) + " exceeds max size: " +
                               std::to_string(serialized.size()) + " > " + std::to_string(MAX_TX_SIZE));
         peer->Misbehaving(20);
         return;
@@ -574,39 +577,40 @@ void NetworkNode::HandleTxMessage(PeerPtr peer, const TxMessage& msg) {
     // Check if already in mempool or blockchain
     MemPool& mempool = blockchain.GetMemPool();
     if (mempool.HasTransaction(txHash)) {
-        LOG_DEBUG("Network", "Transaction " + txHash.ToHex() + " already in mempool");
+        LOG_DEBUG("Network", "Transaction " + crypto::Hash::ToHex(txHash) + " already in mempool");
         return;
     }
 
-    if (blockchain.GetUTXOSet().HasTransaction(txHash)) {
-        LOG_DEBUG("Network", "Transaction " + txHash.ToHex() + " already in blockchain");
-        return;
-    }
+    // TODO: Check if transaction already exists in blockchain
+    // For now, we rely on UTXO checks to prevent double-spends
+    // if (blockchain.HasTransaction(txHash)) {
+    //     LOG_DEBUG("Network", "Transaction " + crypto::Hash::ToHex(txHash) + " already in blockchain");
+    //     return;
+    // }
 
     // Validate transaction signatures and inputs
     const UTXOSet& utxos = blockchain.GetUTXOSet();
     std::string error;
 
     // Check all inputs exist in UTXO set
-    for (const auto& input : tx.vin) {
-        if (!utxos.HasUTXO(input.prevout.hash, input.prevout.n)) {
-            LOG_WARNING("Network", "Transaction " + txHash.ToHex() + " references missing UTXO: " +
-                                  input.prevout.hash.ToHex() + ":" + std::to_string(input.prevout.n));
+    for (const auto& input : tx.inputs) {
+        if (!utxos.HasUTXO(input.prevOut)) {
+            LOG_WARNING("Network", "Transaction " + crypto::Hash::ToHex(txHash) + " references missing UTXO: " +
+                                  crypto::Hash::ToHex(input.prevOut.txHash) + ":" + std::to_string(input.prevOut.index));
             peer->Misbehaving(50);  // Severe: invalid UTXO reference
             return;
         }
     }
 
     // Add to mempool with full validation
-    Amount fee = 0;
-    if (!mempool.AddTransaction(tx, utxos, fee, error)) {
-        LOG_WARNING("Network", "Failed to add transaction " + txHash.ToHex() + " to mempool: " + error);
+    BlockHeight currentHeight = blockchain.GetHeight();
+    if (!mempool.AddTransaction(tx, utxos, currentHeight)) {
+        LOG_WARNING("Network", "Failed to add transaction " + crypto::Hash::ToHex(txHash) + " to mempool");
         peer->Misbehaving(5);  // Minor: validation failed
         return;
     }
 
-    LOG_INFO("Network", "Added transaction " + txHash.ToHex() + " to mempool (fee: " +
-                       std::to_string(fee) + " satoshis)");
+    LOG_INFO("Network", "Added transaction " + crypto::Hash::ToHex(txHash) + " to mempool");
 
     // Relay to other peers
     std::vector<InvItem> inventory;
@@ -615,10 +619,16 @@ void NetworkNode::HandleTxMessage(PeerPtr peer, const TxMessage& msg) {
     item.hash = txHash;
     inventory.push_back(item);
 
-    RelayInventory(inventory, peer);
+    // Broadcast to all peers except the one that sent it
+    for (auto& p : peers) {
+        if (p.second != peer) {
+            SendInventory(p.second, inventory);
+        }
+    }
 }
 
 void NetworkNode::HandleGetBlocksMessage(PeerPtr peer, const GetBlocksMessage& msg) {
+    (void)msg;  // TODO: Implement block locator handling
     LOG_DEBUG("Network", "Received GETBLOCKS request");
 
     // Find blocks to send
@@ -627,10 +637,10 @@ void NetworkNode::HandleGetBlocksMessage(PeerPtr peer, const GetBlocksMessage& m
     // Note: Full block locator processing requires traversing blockchain history
     // For now, just send current tip
     const BlockIndex* tip = blockchain.GetBestBlock();
-    if (tip) {
+    if (tip && tip->block) {
         InvItem item;
         item.type = InvType::BLOCK;
-        item.hash = tip->hash;
+        item.hash = tip->block->GetHash();
         inventory.push_back(item);
     }
 
@@ -641,6 +651,7 @@ void NetworkNode::HandleGetBlocksMessage(PeerPtr peer, const GetBlocksMessage& m
 }
 
 void NetworkNode::HandleGetHeadersMessage(PeerPtr peer, const GetHeadersMessage& msg) {
+    (void)msg;  // TODO: Implement block locator handling
     LOG_DEBUG("Network", "Received GETHEADERS request");
 
     // Note: Header-first synchronization can be implemented for faster initial sync
@@ -649,6 +660,7 @@ void NetworkNode::HandleGetHeadersMessage(PeerPtr peer, const GetHeadersMessage&
 }
 
 void NetworkNode::HandleAddrMessage(PeerPtr peer, const AddrMessage& msg) {
+    (void)peer;  // Unused in this function
     LOG_DEBUG("Network", "Received ADDR with " + std::to_string(msg.addresses.size()) + " addresses");
 
     addrman.Add(msg.addresses);
@@ -667,7 +679,7 @@ void NetworkNode::SendBlock(PeerPtr peer, const Hash256& blockHash) {
         BlockMessage msg(*block);
         peer->SendMessage(msg);
 
-        LOG_DEBUG("Network", "Sent block " + blockHash.ToHex() + " to peer");
+        LOG_DEBUG("Network", "Sent block " + crypto::Hash::ToHex(blockHash) + " to peer");
     } else {
         // Send NOTFOUND
         InvItem item;

@@ -37,7 +37,7 @@ bool BasicKeyStore::AddKey(const Key& key) {
     Hash160 keyID = GetKeyID(key.pubKey);
     keys[keyID] = key;
 
-    LOG_DEBUG("KeyStore", "Added key: " + keyID.ToHex());
+    LOG_DEBUG("KeyStore", "Added key: " + crypto::Hash::ToHex(keyID));
 
     return true;
 }
@@ -300,7 +300,7 @@ bool CryptoKeyStore::AddKey(const Key& key) {
     // Store unencrypted for use
     keys[keyID] = key;
 
-    LOG_DEBUG("KeyStore", "Added key: " + keyID.ToHex());
+    LOG_DEBUG("KeyStore", "Added key: " + crypto::Hash::ToHex(keyID));
 
     return true;
 }
@@ -359,8 +359,12 @@ bytes CryptoKeyStore::EncryptKey(const Hash256& privKey) const {
         return bytes();
     }
 
+    // Convert masterKey bytes to Hash256
+    Hash256 keyArray;
+    std::copy(masterKey.begin(), masterKey.begin() + 32, keyArray.begin());
+
     // Encrypt
-    bytes ciphertext = crypto::AES::Encrypt(plaintext, masterKey, iv);
+    bytes ciphertext = crypto::AES::Encrypt(plaintext, keyArray, iv);
     if (ciphertext.empty()) {
         return bytes();
     }
@@ -385,8 +389,12 @@ bool CryptoKeyStore::DecryptKey(const bytes& encrypted, Hash256& privKey) const 
     // Extract ciphertext
     bytes ciphertext(encrypted.begin() + 16, encrypted.end());
 
+    // Convert masterKey bytes to Hash256
+    Hash256 keyArray;
+    std::copy(masterKey.begin(), masterKey.begin() + 32, keyArray.begin());
+
     // Decrypt
-    bytes plaintext = crypto::AES::Decrypt(ciphertext, masterKey, iv);
+    bytes plaintext = crypto::AES::Decrypt(ciphertext, keyArray, iv);
     if (plaintext.size() != 32) {
         return false;
     }

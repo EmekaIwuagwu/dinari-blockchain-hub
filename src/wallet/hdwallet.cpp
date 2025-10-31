@@ -153,8 +153,9 @@ bool HDWallet::DeriveChildPrivate(const ExtendedKey& parent, uint32_t index, Ext
         data.insert(data.end(), parent.key.begin(), parent.key.end());
     } else {
         // Normal child: data = parent_public_key || index
-        bytes pubKey = crypto::ECDSA::GetPublicKey(
-            Hash256(parent.key.data()), true);
+        Hash256 privKey;
+        std::copy(parent.key.begin(), parent.key.begin() + 32, privKey.begin());
+        bytes pubKey = crypto::ECDSA::GetPublicKey(privKey, true);
         data.insert(data.end(), pubKey.begin(), pubKey.end());
     }
 

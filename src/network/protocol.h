@@ -13,17 +13,12 @@ namespace dinari {
 constexpr uint32_t PROTOCOL_VERSION = 70001;
 constexpr uint32_t MIN_PROTOCOL_VERSION = 70001;
 
-/**
- * @brief Network magic bytes (mainnet)
- */
-constexpr uint32_t MAINNET_MAGIC = 0xD9B4BEF9;
-constexpr uint32_t TESTNET_MAGIC = 0xDAB5BFFA;
+// Note: MAINNET_MAGIC, TESTNET_MAGIC, DEFAULT_PORT, DEFAULT_RPC_PORT,
+// and MAX_OUTBOUND_CONNECTIONS are defined in dinari/types.h
 
 /**
- * @brief Network ports
+ * @brief Additional network ports
  */
-constexpr uint16_t DEFAULT_PORT = 9333;
-constexpr uint16_t DEFAULT_RPC_PORT = 9334;
 constexpr uint16_t TESTNET_PORT = 19333;
 constexpr uint16_t TESTNET_RPC_PORT = 19334;
 
@@ -32,7 +27,6 @@ constexpr uint16_t TESTNET_RPC_PORT = 19334;
  */
 constexpr uint32_t PING_INTERVAL = 120;  // seconds
 constexpr uint32_t TIMEOUT_INTERVAL = 900;  // 15 minutes
-constexpr uint32_t MAX_OUTBOUND_CONNECTIONS = 8;
 constexpr uint32_t MAX_INBOUND_CONNECTIONS = 125;
 constexpr uint32_t MAX_ADDRS_PER_MESSAGE = 1000;
 constexpr uint32_t MAX_INV_PER_MESSAGE = 50000;
