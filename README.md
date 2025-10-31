@@ -982,6 +982,7 @@ A comprehensive security audit covering 13 major categories is available in [doc
 
 ## Documentation
 
+- **[📄 WHITEPAPER](docs/DINARI_BLOCKCHAIN_WHITEPAPER.md)** - Complete technical whitepaper with PoW mathematics
 - **[Setup Guide](docs/SETUP_GUIDE.md)** - Complete setup and deployment guide
 - **[Postman API Documentation](docs/POSTMAN_API_DOCUMENTATION.md)** - Full API reference with examples
 - **[Security Audit](docs/SECURITY_AUDIT.md)** - Comprehensive security checklist and audit
