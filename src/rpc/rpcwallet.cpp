@@ -492,6 +492,8 @@ JSONValue WalletRPC::ListTransactions(const RPCRequest& req, Blockchain& chain, 
 }
 
 JSONValue WalletRPC::GetTransaction(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused
+    (void)node;   // Unused
     RPCHelper::CheckParams(req, 1);
 
     if (!wallet) {
@@ -514,6 +516,8 @@ JSONValue WalletRPC::GetTransaction(const RPCRequest& req, Blockchain& chain, Wa
 }
 
 JSONValue WalletRPC::GetWalletInfo(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused
+    (void)node;   // Unused
     RPCHelper::CheckParams(req, 0);
 
     if (!wallet) {
@@ -535,6 +539,8 @@ JSONValue WalletRPC::GetWalletInfo(const RPCRequest& req, Blockchain& chain, Wal
 }
 
 JSONValue WalletRPC::EncryptWallet(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused
+    (void)node;   // Unused
     RPCHelper::CheckParams(req, 1);
 
     if (!wallet) {
@@ -559,6 +565,8 @@ JSONValue WalletRPC::EncryptWallet(const RPCRequest& req, Blockchain& chain, Wal
 }
 
 JSONValue WalletRPC::WalletLock(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused
+    (void)node;   // Unused
     RPCHelper::CheckParams(req, 0);
 
     if (!wallet) {
@@ -575,6 +583,8 @@ JSONValue WalletRPC::WalletLock(const RPCRequest& req, Blockchain& chain, Wallet
 }
 
 JSONValue WalletRPC::WalletPassphrase(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused parameter
+    (void)node;   // Unused parameter
     RPCHelper::CheckParams(req, 2);
 
     if (!wallet) {
@@ -604,6 +614,8 @@ JSONValue WalletRPC::WalletPassphrase(const RPCRequest& req, Blockchain& chain, 
 }
 
 JSONValue WalletRPC::WalletPassphraseChange(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused parameter
+    (void)node;   // Unused parameter
     RPCHelper::CheckParams(req, 2);
 
     if (!wallet) {
@@ -629,6 +641,8 @@ JSONValue WalletRPC::WalletPassphraseChange(const RPCRequest& req, Blockchain& c
 }
 
 JSONValue WalletRPC::ImportMnemonic(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused parameter
+    (void)node;   // Unused parameter
     RPCHelper::CheckParamsRange(req, 1, 2);
 
     if (!wallet) {
@@ -658,6 +672,8 @@ JSONValue WalletRPC::ImportMnemonic(const RPCRequest& req, Blockchain& chain, Wa
 }
 
 JSONValue WalletRPC::ImportPrivKey(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)chain;  // Unused in this function
+    (void)node;   // Unused in this function
     RPCHelper::CheckParamsRange(req, 1, 2);
 
     if (!wallet) {
@@ -676,7 +692,9 @@ JSONValue WalletRPC::ImportPrivKey(const RPCRequest& req, Blockchain& chain, Wal
     }
 
     Hash256 privKey;
-    if (!privKey.FromHex(privKeyStr)) {
+    try {
+        privKey = crypto::Hash::FromHex256(privKeyStr);
+    } catch (const std::exception&) {
         RPCHelper::ThrowError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key");
     }
 
