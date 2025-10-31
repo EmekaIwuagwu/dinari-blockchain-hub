@@ -1,8 +1,17 @@
 #include "hash.h"
+
+// Suppress OpenSSL 3.0 deprecation warnings for now
+// TODO: Migrate to EVP API in future
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #include <openssl/sha.h>
 #include <openssl/ripemd.h>
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
+
+#pragma GCC diagnostic pop
+
 #include <stdexcept>
 #include <sstream>
 #include <iomanip>
@@ -48,12 +57,12 @@ Hash160 Hash::RIPEMD160(const byte* data, size_t len) {
     return hash;
 }
 
-// Hash160 (SHA-256 + RIPEMD-160)
-Hash160 Hash::Hash160(const bytes& data) {
-    return Hash160(data.data(), data.size());
+// Hash160 (SHA-256 + RIPEMD-160) - used for address generation
+Hash160 Hash::ComputeHash160(const bytes& data) {
+    return ComputeHash160(data.data(), data.size());
 }
 
-Hash160 Hash::Hash160(const byte* data, size_t len) {
+Hash160 Hash::ComputeHash160(const byte* data, size_t len) {
     Hash256 sha = SHA256(data, len);
     return RIPEMD160(sha.data(), sha.size());
 }
@@ -275,6 +284,9 @@ public:
     SHA256_CTX ctx;
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 SHA256Hasher::SHA256Hasher() : pimpl(new Impl()) {
     Reset();
 }
@@ -302,6 +314,8 @@ Hash256 SHA256Hasher::Finalize() {
 void SHA256Hasher::Reset() {
     SHA256_Init(&pimpl->ctx);
 }
+
+#pragma GCC diagnostic pop
 
 } // namespace crypto
 } // namespace dinari

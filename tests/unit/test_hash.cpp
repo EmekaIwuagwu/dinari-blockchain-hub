@@ -54,13 +54,13 @@ TEST(HashTest, Hash160_PublicKeyHash) {
     // Simulate public key
     std::vector<uint8_t> pubkey(33, 0x02);  // Compressed pubkey starting with 0x02
 
-    auto hash160 = Hash::Hash160(pubkey);
+    auto hash160 = Hash::ComputeHash160(pubkey);
 
     // Verify length
     EXPECT_EQ(hash160.size(), 20);
 
     // Verify it's deterministic
-    auto hash160_2 = Hash::Hash160(pubkey);
+    auto hash160_2 = Hash::ComputeHash160(pubkey);
     EXPECT_EQ(hash160, hash160_2);
 }
 

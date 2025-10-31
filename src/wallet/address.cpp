@@ -24,7 +24,7 @@ Address::Address(const Hash160& h, AddressType t)
 }
 
 Address::Address(const bytes& pubKey) {
-    hash = crypto::Hash::Hash160(pubKey);
+    hash = crypto::Hash::ComputeHash160(pubKey);
     type = AddressType::P2PKH;
 }
 
@@ -66,12 +66,12 @@ bool Address::Parse(const std::string& addr) {
 }
 
 Address Address::FromPubKey(const bytes& pubKey) {
-    Hash160 hash = crypto::Hash::Hash160(pubKey);
+    Hash160 hash = crypto::Hash::ComputeHash160(pubKey);
     return Address(hash, AddressType::P2PKH);
 }
 
 Address Address::FromScript(const bytes& script) {
-    Hash160 hash = crypto::Hash::Hash160(script);
+    Hash160 hash = crypto::Hash::ComputeHash160(script);
     return Address(hash, AddressType::P2SH);
 }
 
@@ -349,7 +349,7 @@ bool AddressGenerator::ExtractAddress(const bytes& scriptPubKey, Address& addr) 
             scriptPubKey[scriptPubKey.size() - 1] == static_cast<byte>(OpCode::OP_CHECKSIG)) {
 
             bytes pubKey(scriptPubKey.begin() + 1, scriptPubKey.end() - 1);
-            Hash160 hash = crypto::Hash::Hash160(pubKey);
+            Hash160 hash = crypto::Hash::ComputeHash160(pubKey);
 
             addr = Address(hash, AddressType::P2PK);
             return true;

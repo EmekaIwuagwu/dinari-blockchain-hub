@@ -251,7 +251,7 @@ UTXOSet::Stats UTXOSet::GetStats(BlockHeight currentHeight) const {
     return stats;
 }
 
-void UTXOSet::Prune(BlockHeight keepDepth) {
+void UTXOSet::Prune(BlockHeight keepDepth [[maybe_unused]]) {
     // Note: UTXO pruning can be implemented for optimization after initial deployment
     // This would typically be used in a pruned node
     LOG_INFO("UTXO", "Pruning UTXO set (not yet implemented)");

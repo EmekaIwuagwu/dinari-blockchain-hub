@@ -10,6 +10,9 @@
 
 namespace dinari {
 
+// Forward declarations
+class Address;
+
 /**
  * @brief Transaction location in blockchain
  */

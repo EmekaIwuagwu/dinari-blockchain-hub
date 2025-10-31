@@ -131,7 +131,7 @@ public:
     mutable Hash256 cachedHash;
     mutable bool hashCached;
 
-    Transaction() : version(1), lockTime(0), hashCached(false) {}
+    Transaction() : version(1), lockTime(0), cachedHash{}, hashCached(false) {}
 
     // Serialization
     void SerializeImpl(Serializer& s) const;

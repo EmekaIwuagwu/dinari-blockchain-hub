@@ -29,7 +29,7 @@ using Port = uint16_t;
 using ProtocolVersion = uint32_t;
 
 // Transaction types
-using TxIndex = uint32_t;
+using TxNum = uint32_t;  // Transaction number in block (renamed from TxIndex to avoid conflict with TxIndex class)
 using TxOutIndex = uint32_t;
 
 // Constants for amounts

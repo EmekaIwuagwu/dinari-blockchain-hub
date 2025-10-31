@@ -91,7 +91,7 @@ public:
      *
      * @return Total work from genesis to tip
      */
-    uint256_t GetChainWork() const;
+    uint64_t GetChainWork() const;
 
     /**
      * @brief Check if block exists in chain
@@ -152,7 +152,7 @@ public:
         BlockHeight height;
         size_t totalBlocks;
         size_t orphanBlocks;
-        uint256_t totalWork;
+        uint64_t totalWork;
         Hash256 bestBlockHash;
         Amount totalSupply;
         size_t utxoCount;
@@ -191,8 +191,8 @@ private:
     bool persistenceEnabled;
 
     // In-memory caches for performance
-    // Block storage (hash -> block) - LRU cache
-    std::unordered_map<Hash256, SharedPtr<Block>> blocks;
+    // Block storage (hash -> block) - LRU cache (mutable for caching in const methods)
+    mutable std::unordered_map<Hash256, SharedPtr<Block>> blocks;
 
     // Block index storage (hash -> index)
     std::unordered_map<Hash256, UniquePtr<BlockIndex>> blockIndices;

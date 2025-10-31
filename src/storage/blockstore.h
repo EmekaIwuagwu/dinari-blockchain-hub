@@ -3,7 +3,7 @@
 
 #include "database.h"
 #include "dinari/types.h"
-#include "core/block.h"
+#include "blockchain/block.h"
 #include <memory>
 #include <optional>
 
@@ -88,12 +88,12 @@ public:
     /**
      * @brief Get total chain work
      */
-    std::optional<uint256_t> GetTotalWork() const;
+    std::optional<uint64_t> GetTotalWork() const;
 
     /**
      * @brief Set total chain work
      */
-    bool SetTotalWork(const uint256_t& work);
+    bool SetTotalWork(const uint64_t& work);
 
     /**
      * @brief Delete block

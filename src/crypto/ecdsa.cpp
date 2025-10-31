@@ -467,7 +467,7 @@ Hash256 ECDSA::PrivKeyNegate(const Hash256& privkey) {
 
 // KeyPair methods
 Hash160 KeyPair::GetHash160() const {
-    return Hash::Hash160(publicKey);
+    return Hash::ComputeHash160(publicKey);
 }
 
 } // namespace crypto

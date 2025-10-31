@@ -54,7 +54,7 @@ public:
     Hash256 GetTarget() const;
 
     // Calculate work represented by this block
-    uint256_t GetWork() const;
+    uint64_t GetWork() const;
 
     // String representation
     std::string ToString() const;
@@ -78,7 +78,7 @@ public:
     mutable size_t cachedSize;
     mutable bool sizeCached;
 
-    Block() : sizeCached(false), cachedSize(0) {}
+    Block() : cachedSize(0), sizeCached(false) {}
 
     // Serialization
     void SerializeImpl(Serializer& s) const;
@@ -140,7 +140,7 @@ public:
 
     // Chain metadata
     BlockHeight height;
-    uint256_t chainWork;        // Total work from genesis to this block
+    uint64_t chainWork;        // Total work from genesis to this block
     BlockIndex* prev;           // Previous block in chain
     std::vector<BlockIndex*> next;  // Possible next blocks (for forks)
 

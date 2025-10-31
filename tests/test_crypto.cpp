@@ -39,7 +39,7 @@ TEST(DoubleSHA256) {
 
 TEST(Hash160) {
     bytes input = {'t', 'e', 's', 't'};
-    Hash160 hash = crypto::Hash::Hash160(input);
+    Hash160 hash = crypto::Hash::ComputeHash160(input);
 
     // Hash160 should produce 20 bytes
     bool allZero = true;

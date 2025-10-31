@@ -487,7 +487,7 @@ bool Blockchain::UpdateUTXOs(const Block& block, BlockHeight height) {
             // Remove spent UTXOs (except coinbase)
             if (txIdx > 0) {
                 for (const auto& input : tx.inputs) {
-                    if (!txIndex.RemoveUTXO(input.prevOutput)) {
+                    if (!txIndex.RemoveUTXO(input.prevOut)) {
                         LOG_ERROR("Blockchain", "Failed to remove spent UTXO");
                         return false;
                     }
@@ -560,7 +560,7 @@ BlockHeight Blockchain::GetHeight() const {
     return bestBlock ? bestBlock->height : 0;
 }
 
-uint256_t Blockchain::GetChainWork() const {
+uint64_t Blockchain::GetChainWork() const {
     std::lock_guard<std::mutex> lock(mutex);
     return bestBlock ? bestBlock->chainWork : 0;
 }
@@ -790,7 +790,7 @@ bool Blockchain::LoadFromDisk() {
                 if (txIndex.HasUTXO(outpoint)) {
                     auto utxoOpt = txIndex.GetUTXO(outpoint);
                     if (utxoOpt) {
-                        utxos.AddUTXO(outpoint, *utxoOpt, h);
+                        utxos.AddUTXO(outpoint, *utxoOpt, h, false);
                     }
                 }
             }
