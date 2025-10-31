@@ -209,7 +209,7 @@ template<typename T>
 T Deserializer::ReadObject() {
     T obj;
     // If T has a Deserialize method, use it
-    if constexpr (requires { obj.DeserializeImpl(std::declval<Deserializer&>()); }) {
+    if constexpr (std::is_invocable_v<decltype(&T::DeserializeImpl), T, Deserializer&>) {
         obj.DeserializeImpl(*this);
         return obj;
     } else {
@@ -242,9 +242,7 @@ inline uint64_t htole64(uint64_t x) {
 #endif
 }
 
-inline uint16_t le16toh(uint16_t x) { return htole16(x); }
-inline uint32_t le32toh(uint32_t x) { return htole32(x); }
-inline uint64_t le64toh(uint64_t x) { return htole64(x); }
+// Note: le16toh, le32toh, le64toh are provided by system headers
 
 } // namespace dinari
 

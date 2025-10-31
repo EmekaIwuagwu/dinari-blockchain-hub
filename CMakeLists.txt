@@ -11,6 +11,10 @@ if(MSVC)
     add_compile_options(/W4 /WX)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+    # Suppress OpenSSL 3.0 deprecation warnings (migration to EVP API planned)
+    add_compile_options(-Wno-deprecated-declarations)
+    # Suppress array-bounds false positives in gcc 13
+    add_compile_options(-Wno-array-bounds)
 endif()
 
 # Build type

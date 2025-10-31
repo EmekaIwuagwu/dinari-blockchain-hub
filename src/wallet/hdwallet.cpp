@@ -336,7 +336,7 @@ bytes HDWallet::GetPublicKey(const ExtendedKey& extKey) {
 
 uint32_t HDWallet::GetFingerprint(const ExtendedKey& key) {
     bytes pubKey = GetPublicKey(key);
-    Hash160 hash = crypto::Hash::Hash160(pubKey);
+    Hash160 hash = crypto::Hash::ComputeHash160(pubKey);
 
     return (hash[0] << 24) | (hash[1] << 16) | (hash[2] << 8) | hash[3];
 }

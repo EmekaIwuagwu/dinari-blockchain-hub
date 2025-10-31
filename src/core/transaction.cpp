@@ -458,7 +458,7 @@ Amount GetBlockReward(BlockHeight height) {
 }
 
 Transaction CreateCoinbaseTransaction(BlockHeight height,
-                                     const std::string& minerAddress,
+                                     const std::string& minerAddress [[maybe_unused]],
                                      uint32_t extraNonce,
                                      Amount blockReward) {
     Transaction tx;

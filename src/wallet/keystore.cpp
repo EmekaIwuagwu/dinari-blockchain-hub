@@ -94,7 +94,7 @@ void BasicKeyStore::Clear() {
 }
 
 Hash160 BasicKeyStore::GetKeyID(const bytes& pubKey) const {
-    return crypto::Hash::Hash160(pubKey);
+    return crypto::Hash::ComputeHash160(pubKey);
 }
 
 // CryptoKeyStore implementation

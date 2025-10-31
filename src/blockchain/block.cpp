@@ -5,6 +5,7 @@
 #include "util/time.h"
 #include "dinari/constants.h"
 #include <sstream>
+#include <set>
 
 namespace dinari {
 
@@ -70,19 +71,19 @@ Hash256 BlockHeader::GetTarget() const {
     return crypto::Hash::CompactToTarget(bits);
 }
 
-uint256_t BlockHeader::GetWork() const {
+uint64_t BlockHeader::GetWork() const {
     // Work = 2^256 / (target + 1)
     // For simplicity, we approximate as: work = difficulty
     // This is good enough for chain selection
-    Hash256 target = GetTarget();
+    [[maybe_unused]] Hash256 target = GetTarget();
 
-    // Convert target to uint256_t (simplified)
+    // Convert target to uint64_t (simplified)
     // Higher difficulty = more work
     // Lower target = higher difficulty = more work
 
     // For now, return a simple work value based on bits
     // In production, this would be a proper bignum calculation
-    uint256_t work = 0x100000000ULL / (bits & 0x00FFFFFF);
+    uint64_t work = 0x100000000ULL / (bits & 0x00FFFFFF);
 
     return work;
 }
@@ -423,7 +424,7 @@ bool MineBlock(Block& block, uint64_t maxIterations) {
     LOG_INFO("Mining", "Target: 0x" + std::to_string(block.header.bits));
 
     uint64_t iterations = 0;
-    Nonce startNonce = block.header.nonce;
+    [[maybe_unused]] Nonce startNonce = block.header.nonce;
 
     Timer timer;
 

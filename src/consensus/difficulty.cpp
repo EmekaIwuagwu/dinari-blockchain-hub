@@ -44,7 +44,7 @@ uint32_t DifficultyAdjuster::GetNextWorkRequired(const BlockIndex* lastBlock,
     actualTimespan = LimitTimespan(actualTimespan, targetTimespan);
 
     // Get current target
-    Hash256 currentTarget = crypto::Hash::CompactToTarget(lastBlock->GetBits());
+    [[maybe_unused]] Hash256 currentTarget = crypto::Hash::CompactToTarget(lastBlock->GetBits());
 
     // Calculate new target: newTarget = currentTarget * actualTimespan / targetTimespan
     // We need to do big number arithmetic here
@@ -173,8 +173,8 @@ double DifficultyAdjuster::GetDifficulty(uint32_t bits) {
         return 0.0;
     }
 
-    // Max target (difficulty 1)
-    const double maxTarget = 0x00000000FFFF0000000000000000000000000000000000000000000000000000;
+    // Max target (difficulty 1) - calculated as 0x00000000FFFF * 2^208
+    const double maxTarget = 0xFFFF * pow(256.0, 26);
 
     // Current target
     double target = mantissa * pow(256.0, exponent - 3);

@@ -53,8 +53,8 @@ public:
      * @param data Input data (usually a public key)
      * @return 20-byte hash
      */
-    static Hash160 Hash160(const bytes& data);
-    static Hash160 Hash160(const byte* data, size_t len);
+    static dinari::Hash160 ComputeHash160(const bytes& data);
+    static dinari::Hash160 ComputeHash160(const byte* data, size_t len);
 
     /**
      * @brief Convert hash to hex string
@@ -62,7 +62,7 @@ public:
      * @return Hexadecimal string representation
      */
     static std::string ToHex(const Hash256& hash);
-    static std::string ToHex(const Hash160& hash);
+    static std::string ToHex(const dinari::Hash160& hash);
 
     /**
      * @brief Convert hex string to hash
@@ -70,7 +70,7 @@ public:
      * @return Hash (throws on invalid input)
      */
     static Hash256 FromHex256(const std::string& hex);
-    static Hash160 FromHex160(const std::string& hex);
+    static dinari::Hash160 FromHex160(const std::string& hex);
 
     /**
      * @brief Compute Merkle root from transaction hashes

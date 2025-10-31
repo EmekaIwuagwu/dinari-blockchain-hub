@@ -155,7 +155,7 @@ ValidationResult ConsensusValidator::ValidateTransaction(const Transaction& tx,
 }
 
 ValidationResult ConsensusValidator::ValidateCoinbase(const Transaction& tx,
-                                                      BlockHeight height,
+                                                      [[maybe_unused]] BlockHeight height,
                                                       Amount blockReward,
                                                       Amount totalFees) {
     if (!tx.IsCoinbase()) {

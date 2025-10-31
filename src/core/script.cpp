@@ -238,13 +238,11 @@ bool ScriptEngine::ExecuteScript(const bytes& script, const Transaction& tx,
 bool ScriptEngine::ExecuteOpcode(OpCode opcode, const Transaction& tx,
                                  size_t inputIndex) {
     switch (opcode) {
-        case OpCode::OP_0:
-        case OpCode::OP_FALSE:
+        case OpCode::OP_0:  // OP_FALSE is same value
             PushStack(bytes());
             return true;
 
-        case OpCode::OP_1:
-        case OpCode::OP_TRUE:
+        case OpCode::OP_1:  // OP_TRUE is same value
             PushStack(IntToBytes(1));
             return true;
 
@@ -258,7 +256,7 @@ bool ScriptEngine::ExecuteOpcode(OpCode opcode, const Transaction& tx,
         case OpCode::OP_HASH160: {
             bytes value;
             if (!PopStack(value)) return false;
-            Hash160 hash = crypto::Hash::Hash160(value);
+            Hash160 hash = crypto::Hash::ComputeHash160(value);
             PushStack(bytes(hash.begin(), hash.end()));
             return true;
         }
