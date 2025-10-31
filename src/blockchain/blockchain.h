@@ -5,6 +5,8 @@
 #include "block.h"
 #include "core/utxo.h"
 #include "core/mempool.h"
+#include "storage/blockstore.h"
+#include "storage/txindex.h"
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -30,12 +32,13 @@ public:
     ~Blockchain();
 
     /**
-     * @brief Initialize blockchain with genesis block
+     * @brief Initialize blockchain with genesis block and data directory
      *
      * @param genesisBlock Genesis block
+     * @param dataDir Data directory for persistent storage
      * @return true if initialized successfully
      */
-    bool Initialize(const Block& genesisBlock);
+    bool Initialize(const Block& genesisBlock, const std::string& dataDir = "");
 
     /**
      * @brief Process and add new block to chain
@@ -182,7 +185,13 @@ public:
     const BlockIndex* FindCommonAncestor(const std::vector<Hash256>& locator) const;
 
 private:
-    // Block storage (hash -> block)
+    // Persistent storage
+    BlockStore blockStore;
+    TxIndex txIndex;
+    bool persistenceEnabled;
+
+    // In-memory caches for performance
+    // Block storage (hash -> block) - LRU cache
     std::unordered_map<Hash256, SharedPtr<Block>> blocks;
 
     // Block index storage (hash -> index)
@@ -200,7 +209,7 @@ private:
     // Genesis block
     BlockIndex* genesisBlock;
 
-    // UTXO set
+    // UTXO set (in-memory cache, backed by txIndex)
     UTXOSet utxos;
 
     // MemPool
@@ -322,6 +331,28 @@ private:
      * @return Total supply
      */
     Amount CalculateTotalSupply(BlockHeight height) const;
+
+    /**
+     * @brief Load blockchain state from disk
+     *
+     * @return true if successful
+     */
+    bool LoadFromDisk();
+
+    /**
+     * @brief Flush state to disk
+     *
+     * @return true if successful
+     */
+    bool FlushToDisk();
+
+    /**
+     * @brief Get block from disk or cache
+     *
+     * @param hash Block hash
+     * @return Block pointer
+     */
+    SharedPtr<Block> GetBlockData(const Hash256& hash) const;
 };
 
 } // namespace dinari

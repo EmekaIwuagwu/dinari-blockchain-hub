@@ -29,6 +29,17 @@ option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
+# Find LevelDB
+find_path(LEVELDB_INCLUDE_DIR leveldb/db.h)
+find_library(LEVELDB_LIBRARY NAMES leveldb)
+
+if(NOT LEVELDB_INCLUDE_DIR OR NOT LEVELDB_LIBRARY)
+    message(FATAL_ERROR "LevelDB not found. Please install libleveldb-dev")
+endif()
+
+set(LEVELDB_LIBRARIES ${LEVELDB_LIBRARY})
+set(LEVELDB_INCLUDE_DIRS ${LEVELDB_INCLUDE_DIR})
+
 # Include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
@@ -148,6 +159,8 @@ target_link_libraries(dinari_core
         OpenSSL::SSL
         OpenSSL::Crypto
         Threads::Threads
+        ${LEVELDB_LIBRARIES}
+        stdc++fs
 )
 
 # Main executable

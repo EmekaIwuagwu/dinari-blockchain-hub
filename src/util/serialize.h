@@ -182,7 +182,7 @@ void Serializer::WriteVector(const std::vector<T>& vec) {
 template<typename T>
 void Serializer::WriteObject(const T& obj) {
     // If T has a Serialize method, use it
-    if constexpr (requires { obj.SerializeImpl(std::declval<Serializer&>()); }) {
+    if constexpr (std::is_invocable_v<decltype(&T::SerializeImpl), T, Serializer&>) {
         obj.SerializeImpl(*this);
     } else {
         // Otherwise, T must be a basic type already handled
