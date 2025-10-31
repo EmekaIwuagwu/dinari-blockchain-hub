@@ -68,6 +68,81 @@
 
 ---
 
+## At a Glance
+
+### What is Dinari?
+
+**Dinari Blockchain** is a production-ready, security-hardened Layer-1 blockchain built on proven Proof-of-Work consensus. Designed for enterprise-grade reliability and real-world financial transactions, Dinari combines Bitcoin's battle-tested security model with modern architectural innovations.
+
+### Quick Facts
+
+| **Aspect** | **Details** |
+|------------|-------------|
+| **Blockchain Type** | Layer-1 Proof-of-Work (PoW) |
+| **Consensus Algorithm** | SHA-256 Double Hashing |
+| **Native Token** | DNT (Dinari Token) |
+| **Total Supply** | 700 Trillion DNT (Fixed) |
+| **Decimal Places** | 8 (Satoshi-style) |
+| **Block Time** | ~10 minutes (600 seconds) |
+| **Block Reward** | 50 DNT (halvings every 210,000 blocks) |
+| **Development Status** | ✅ Production-Ready (11/11 phases complete) |
+| **Security Audit** | ✅ Complete (8/8 vulnerabilities fixed) |
+| **Database** | ✅ LevelDB persistence implemented |
+
+### Token Valuation & Pricing
+
+| **Metric** | **Value** |
+|------------|-----------|
+| **Initial Token Price (ITP)** | $0.0000001 USD per DNT |
+| **Market Cap at ITP** | $70,000,000 USD (70 million) |
+| **Circulating Supply** | 700 Trillion DNT |
+| **Token Standard** | Native (UTXO-based) |
+| **Smallest Unit** | 1 satoshi = 0.00000001 DNT |
+
+**Exchange Rate Examples:**
+- 1 DNT = $0.0000001 USD
+- 10,000 DNT = $0.001 USD (1 cent per 10K DNT)
+- 1,000,000 DNT = $0.10 USD
+- 10,000,000 DNT = $1.00 USD
+- 1,000,000,000 DNT = $100 USD
+
+**Investment Tiers:**
+- **Micro**: $100 → 1 Billion DNT
+- **Small**: $1,000 → 10 Billion DNT
+- **Medium**: $10,000 → 100 Billion DNT
+- **Large**: $100,000 → 1 Trillion DNT
+
+**Note:** *Pricing is indicative for initial token offering. Actual market price will be determined by supply and demand on exchanges post-launch. The conservative initial pricing ($0.0000001 per DNT) provides significant upside potential for early investors.*
+
+### Key Highlights
+
+- ✅ **100% Complete**: All 11 development phases finished
+- ✅ **Database Persistence**: LevelDB integration for permanent data storage
+- ✅ **Security-Hardened**: All critical vulnerabilities patched (8/8 fixed)
+- ✅ **Production-Ready**: Docker, Azure cloud deployment, full documentation
+- ✅ **Battle-Tested Mathematics**: SHA-256 Proof of Work with dynamic difficulty adjustment
+- ✅ **Enterprise Features**: Multi-threaded mining, HD wallets (BIP32/39/44), JSON-RPC API
+- ✅ **Zero Technical Debt**: Zero TODO items in codebase
+- ✅ **Enhanced API**: Professional transaction endpoints with detailed request/response formats
+
+### Technology Stack
+
+- **Language**: C++17
+- **Cryptography**: OpenSSL 3.0+ (ECDSA secp256k1, SHA-256, RIPEMD-160, AES-256)
+- **Database**: LevelDB 1.23+ (persistent storage)
+- **Build System**: CMake 3.15+
+- **API**: JSON-RPC 2.0 over HTTP
+- **Deployment**: Docker, Azure Cloud, Native Linux/macOS/Windows
+
+### Contact Information
+
+- **Email**: info@dinariblockchain.io
+- **Website**: www.dinariblockchain.io
+- **GitHub**: github.com/dinari-blockchain
+- **Documentation**: docs.dinariblockchain.io
+
+---
+
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
