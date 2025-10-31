@@ -195,6 +195,8 @@ JSONValue BlockchainRPC::GetBlock(const RPCRequest& req, Blockchain& chain, Wall
 }
 
 JSONValue BlockchainRPC::GetBestBlockHash(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     const BlockIndex* tip = chain.GetBestBlock();
@@ -206,6 +208,8 @@ JSONValue BlockchainRPC::GetBestBlockHash(const RPCRequest& req, Blockchain& cha
 }
 
 JSONValue BlockchainRPC::GetDifficulty(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     const BlockIndex* tip = chain.GetBestBlock();
@@ -220,8 +224,10 @@ JSONValue BlockchainRPC::GetDifficulty(const RPCRequest& req, Blockchain& chain,
 
     return JSONValue(difficulty);
 }
+    (void)wallet;
 
 JSONValue BlockchainRPC::GetBlockchainInfo(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)node;
     RPCHelper::CheckParams(req, 0);
 
     JSONObject obj;
@@ -239,6 +245,8 @@ JSONValue BlockchainRPC::GetBlockchainInfo(const RPCRequest& req, Blockchain& ch
 }
 
 JSONValue BlockchainRPC::GetTxOut(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
+    (void)wallet;
+    (void)node;
     RPCHelper::CheckParams(req, 2);
 
     std::string txidStr = RPCHelper::GetStringParam(req, 0);
@@ -278,6 +286,8 @@ JSONValue BlockchainRPC::GetTxOut(const RPCRequest& req, Blockchain& chain, Wall
     return JSONValue(obj.Serialize());
 }
 
+    (void)wallet;
+    (void)node;
 JSONValue BlockchainRPC::GetMempoolInfo(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
     RPCHelper::CheckParams(req, 0);
 
@@ -293,6 +303,8 @@ JSONValue BlockchainRPC::GetMempoolInfo(const RPCRequest& req, Blockchain& chain
     return JSONValue(obj.Serialize());
 }
 
+    (void)wallet;
+    (void)node;
 JSONValue BlockchainRPC::GetRawMempool(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
     RPCHelper::CheckParamsRange(req, 0, 1);
 
@@ -323,12 +335,19 @@ JSONValue BlockchainRPC::GetRawMempool(const RPCRequest& req, Blockchain& chain,
     }
 
     return JSONValue(obj.Serialize());
+    (void)req;
+    (void)chain;
+    (void)wallet;
+    (void)node;
 }
 
 JSONValue BlockchainRPC::Help(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
     // Note: Enhanced help system with command listing can be added in future updates
     JSONValue result("Help: List of available RPC commands");
     return result;
+    (void)chain;
+    (void)wallet;
+    (void)node;
 }
 
 JSONValue BlockchainRPC::Stop(const RPCRequest& req, Blockchain& chain, Wallet* wallet, NetworkNode* node) {
