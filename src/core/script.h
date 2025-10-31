@@ -183,9 +183,6 @@ public:
     // Retrieve the last error message
     std::string GetLastError() const { return lastError; }
 
-    // Get last error
-    std::string GetLastError() const { return lastError; }
-
 private:
     std::stack<bytes> stack;
     std::stack<bytes> altStack;
@@ -214,6 +211,9 @@ private:
 
     // Crypto operations
     bool OpCheckSig(const Transaction& tx, size_t inputIndex);
+
+    // Helper to remove data from script (for signature removal in OP_CHECKSIG)
+    static bytes FindAndDelete(const bytes& script, const bytes& data);
 
     static const bytes& EmptyScript();
 

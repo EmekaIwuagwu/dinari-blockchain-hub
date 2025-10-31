@@ -418,19 +418,68 @@ bool ScriptEngine::OpCheckSig(const Transaction& tx, size_t inputIndex) {
     }
 
     uint32_t hashType = signature.back();
-    signature.pop_back();  // Remove hash type byte
+    bytes signatureWithoutHashType = signature;
+    signatureWithoutHashType.pop_back();  // Remove hash type byte for verification
 
-    // Get signature hash
+    // Get scriptCode and remove the signature from it per Bitcoin consensus rules
+    // This prevents signature malleability and matches Bitcoin Core behavior
     const bytes* scriptCode = currentScriptCode;
-    const bytes& scriptForHash = scriptCode ? *scriptCode : EmptyScript();
+    bytes scriptForHash = scriptCode ? *scriptCode : EmptyScript();
+
+    // Create the signature data to remove: <sig length> <sig>
+    bytes sigToRemove;
+    if (signature.size() < 76) {
+        sigToRemove.push_back(static_cast<byte>(signature.size()));
+    } else if (signature.size() <= 0xff) {
+        sigToRemove.push_back(0x4c);  // OP_PUSHDATA1
+        sigToRemove.push_back(static_cast<byte>(signature.size()));
+    } else if (signature.size() <= 0xffff) {
+        sigToRemove.push_back(0x4d);  // OP_PUSHDATA2
+        sigToRemove.push_back(static_cast<byte>(signature.size() & 0xff));
+        sigToRemove.push_back(static_cast<byte>(signature.size() >> 8));
+    }
+    sigToRemove.insert(sigToRemove.end(), signature.begin(), signature.end());
+
+    // Remove all instances of the signature from the scriptCode
+    scriptForHash = FindAndDelete(scriptForHash, sigToRemove);
+
+    // Get signature hash with the cleaned scriptCode
     Hash256 sigHash = tx.GetSignatureHash(inputIndex, scriptForHash, hashType);
 
     // Verify using ECDSA
-    bool valid = crypto::ECDSA::Verify(sigHash, signature, pubkey);
+    bool valid = crypto::ECDSA::Verify(sigHash, signatureWithoutHashType, pubkey);
 
     PushStack(IntToBytes(valid ? 1 : 0));
 
     return true;
+}
+
+bytes ScriptEngine::FindAndDelete(const bytes& script, const bytes& data) {
+    if (data.empty() || script.size() < data.size()) {
+        return script;
+    }
+
+    bytes result;
+    result.reserve(script.size());
+
+    for (size_t i = 0; i < script.size(); ) {
+        // Check if we have a match at current position
+        bool match = false;
+        if (i + data.size() <= script.size()) {
+            match = std::equal(data.begin(), data.end(), script.begin() + i);
+        }
+
+        if (match) {
+            // Skip the matched data
+            i += data.size();
+        } else {
+            // Copy current byte and advance
+            result.push_back(script[i]);
+            i++;
+        }
+    }
+
+    return result;
 }
 
 const bytes& ScriptEngine::EmptyScript() {
