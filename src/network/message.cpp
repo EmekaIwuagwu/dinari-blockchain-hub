@@ -30,20 +30,20 @@ bytes VersionMessage::Serialize() const {
 
     // addrRecv
     s.WriteUInt64(addrRecv.services);
-    s.Write(addrRecv.ip.data(), 16);
-    s.WriteUInt16BE(addrRecv.port);
+    s.WriteBytes(addrRecv.ip.data(), 16);
+    s.WriteUInt16(addrRecv.port);
 
     // addrFrom
     s.WriteUInt64(addrFrom.services);
-    s.Write(addrFrom.ip.data(), 16);
-    s.WriteUInt16BE(addrFrom.port);
+    s.WriteBytes(addrFrom.ip.data(), 16);
+    s.WriteUInt16(addrFrom.port);
 
     s.WriteUInt64(nonce);
     s.WriteString(userAgent);
     s.WriteInt32(startHeight);
-    s.WriteByte(relay ? 1 : 0);
+    s.WriteUInt8(relay ? 1 : 0);
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool VersionMessage::Deserialize(const bytes& data) {
@@ -56,20 +56,23 @@ bool VersionMessage::Deserialize(const bytes& data) {
 
         // addrRecv
         addrRecv.services = d.ReadUInt64();
-        d.Read(addrRecv.ip.data(), 16);
-        addrRecv.port = d.ReadUInt16BE();
+        bytes recvIp = d.ReadBytes(16);
+        std::copy(recvIp.begin(), recvIp.end(), addrRecv.ip.data());
+        addrRecv.port = d.ReadUInt16();
 
         // addrFrom
         addrFrom.services = d.ReadUInt64();
-        d.Read(addrFrom.ip.data(), 16);
-        addrFrom.port = d.ReadUInt16BE();
+        bytes fromIp = d.ReadBytes(16);
+        std::copy(fromIp.begin(), fromIp.end(), addrFrom.ip.data());
+        addrFrom.port = d.ReadUInt16();
 
         nonce = d.ReadUInt64();
-        userAgent = d.ReadString();
+        size_t uaLen = d.ReadCompactSize();
+        userAgent = d.ReadString(uaLen);
         startHeight = d.ReadInt32();
 
         if (d.Available() > 0) {
-            relay = d.ReadByte() != 0;
+            relay = d.ReadUInt8() != 0;
         }
 
         return true;
@@ -84,7 +87,7 @@ bool VersionMessage::Deserialize(const bytes& data) {
 bytes PingMessage::Serialize() const {
     Serializer s;
     s.WriteUInt64(nonce);
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool PingMessage::Deserialize(const bytes& data) {
@@ -103,7 +106,7 @@ bool PingMessage::Deserialize(const bytes& data) {
 bytes PongMessage::Serialize() const {
     Serializer s;
     s.WriteUInt64(nonce);
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool PongMessage::Deserialize(const bytes& data) {
@@ -126,11 +129,11 @@ bytes AddrMessage::Serialize() const {
     for (const auto& addr : addresses) {
         s.WriteUInt32(addr.timestamp);
         s.WriteUInt64(addr.services);
-        s.Write(addr.ip.data(), 16);
-        s.WriteUInt16BE(addr.port);
+        s.WriteBytes(addr.ip.data(), 16);
+        s.WriteUInt16(addr.port);
     }
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool AddrMessage::Deserialize(const bytes& data) {
@@ -150,8 +153,9 @@ bool AddrMessage::Deserialize(const bytes& data) {
             NetworkAddress addr;
             addr.timestamp = d.ReadUInt32();
             addr.services = d.ReadUInt64();
-            d.Read(addr.ip.data(), 16);
-            addr.port = d.ReadUInt16BE();
+            bytes ip = d.ReadBytes(16);
+            std::copy(ip.begin(), ip.end(), addr.ip.data());
+            addr.port = d.ReadUInt16();
 
             addresses.push_back(addr);
         }
@@ -174,7 +178,7 @@ bytes InvMessage::Serialize() const {
         s.WriteHash256(item.hash);
     }
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool InvMessage::Deserialize(const bytes& data) {
@@ -216,7 +220,7 @@ bytes GetDataMessage::Serialize() const {
         s.WriteHash256(item.hash);
     }
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool GetDataMessage::Deserialize(const bytes& data) {
@@ -258,7 +262,7 @@ bytes NotFoundMessage::Serialize() const {
         s.WriteHash256(item.hash);
     }
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool NotFoundMessage::Deserialize(const bytes& data) {
@@ -297,7 +301,7 @@ bytes GetBlocksMessage::Serialize() const {
 
     s.WriteHash256(hashStop);
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool GetBlocksMessage::Deserialize(const bytes& data) {
@@ -336,7 +340,7 @@ bytes GetHeadersMessage::Serialize() const {
 
     s.WriteHash256(hashStop);
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool GetHeadersMessage::Deserialize(const bytes& data) {
@@ -365,11 +369,19 @@ bool GetHeadersMessage::Deserialize(const bytes& data) {
 // BlockMessage implementation
 
 bytes BlockMessage::Serialize() const {
-    return block.Serialize();
+    Serializer s;
+    block.SerializeImpl(s);
+    return s.GetData();
 }
 
 bool BlockMessage::Deserialize(const bytes& data) {
-    return block.Deserialize(data);
+    try {
+        Deserializer d(data);
+        block.DeserializeImpl(d);
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
 }
 
 // HeadersMessage implementation
@@ -379,12 +391,11 @@ bytes HeadersMessage::Serialize() const {
     s.WriteVarInt(headers.size());
 
     for (const auto& header : headers) {
-        bytes headerData = header.Serialize();
-        s.Write(headerData.data(), headerData.size());
+        header.SerializeImpl(s);
         s.WriteVarInt(0);  // Transaction count (0 for headers)
     }
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool HeadersMessage::Deserialize(const bytes& data) {
@@ -402,10 +413,7 @@ bool HeadersMessage::Deserialize(const bytes& data) {
 
         for (uint64_t i = 0; i < count; ++i) {
             BlockHeader header;
-            bytes headerData = d.ReadBytes(80);  // Header is 80 bytes
-            if (!header.Deserialize(headerData)) {
-                return false;
-            }
+            header.DeserializeImpl(d);
 
             uint64_t txCount = d.ReadVarInt();
             if (txCount != 0) {
@@ -425,11 +433,19 @@ bool HeadersMessage::Deserialize(const bytes& data) {
 // TxMessage implementation
 
 bytes TxMessage::Serialize() const {
-    return tx.Serialize();
+    Serializer s;
+    tx.SerializeImpl(s);
+    return s.GetData();
 }
 
 bool TxMessage::Deserialize(const bytes& data) {
-    return tx.Deserialize(data);
+    try {
+        Deserializer d(data);
+        tx.DeserializeImpl(d);
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
 }
 
 // RejectMessage implementation
@@ -437,23 +453,25 @@ bool TxMessage::Deserialize(const bytes& data) {
 bytes RejectMessage::Serialize() const {
     Serializer s;
     s.WriteString(message);
-    s.WriteByte(static_cast<uint8_t>(code));
+    s.WriteUInt8(static_cast<uint8_t>(code));
     s.WriteString(reason);
 
     if (!data.empty()) {
-        s.Write(data.data(), data.size());
+        s.WriteBytes(data.data(), data.size());
     }
 
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool RejectMessage::Deserialize(const bytes& bytes) {
     try {
         Deserializer d(bytes);
 
-        message = d.ReadString();
-        code = static_cast<RejectCode>(d.ReadByte());
-        reason = d.ReadString();
+        size_t msgLen = d.ReadCompactSize();
+        message = d.ReadString(msgLen);
+        code = static_cast<RejectCode>(d.ReadUInt8());
+        size_t reasonLen = d.ReadCompactSize();
+        reason = d.ReadString(reasonLen);
 
         if (d.Available() > 0) {
             data = d.ReadBytes(d.Available());
@@ -606,10 +624,10 @@ uint32_t MessageSerializer::CalculateChecksum(const bytes& payload) {
 bytes MessageSerializer::SerializeHeader(const MessageHeader& header) {
     Serializer s;
     s.WriteUInt32(header.magic);
-    s.Write(reinterpret_cast<const byte*>(header.command), 12);
+    s.WriteBytes(reinterpret_cast<const byte*>(header.command), 12);
     s.WriteUInt32(header.payloadSize);
     s.WriteUInt32(header.checksum);
-    return s.GetBytes();
+    return s.GetData();
 }
 
 bool MessageSerializer::DeserializeHeader(const bytes& data, MessageHeader& header) {
@@ -620,7 +638,8 @@ bool MessageSerializer::DeserializeHeader(const bytes& data, MessageHeader& head
     try {
         Deserializer d(data);
         header.magic = d.ReadUInt32();
-        d.Read(reinterpret_cast<byte*>(header.command), 12);
+        bytes commandBytes = d.ReadBytes(12);
+        std::memcpy(header.command, commandBytes.data(), 12);
         header.payloadSize = d.ReadUInt32();
         header.checksum = d.ReadUInt32();
 

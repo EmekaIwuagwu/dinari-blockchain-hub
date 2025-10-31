@@ -35,6 +35,7 @@ using TxOutIndex = uint32_t;
 // Constants for amounts
 constexpr Amount COIN = 100000000;  // 1 DNT = 100,000,000 smallest units
 constexpr Amount MAX_MONEY = 700000000000000ULL * COIN;  // 700 Trillion DNT
+constexpr Amount DUST_THRESHOLD = 546;  // Minimum output value (satoshi-equivalent)
 
 // Network magic bytes
 constexpr uint32_t MAINNET_MAGIC = 0xD1A2B3C4;

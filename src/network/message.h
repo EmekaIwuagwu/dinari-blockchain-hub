@@ -72,7 +72,7 @@ class VerackMessage : public NetworkMessage {
 public:
     NetMsgType GetType() const override { return NetMsgType::VERACK; }
     bytes Serialize() const override { return bytes(); }
-    bool Deserialize(const bytes& data) override { return true; }
+    bool Deserialize(const bytes& data) override { (void)data; return true; }
 };
 
 /**
@@ -127,7 +127,7 @@ class GetAddrMessage : public NetworkMessage {
 public:
     NetMsgType GetType() const override { return NetMsgType::GETADDR; }
     bytes Serialize() const override { return bytes(); }
-    bool Deserialize(const bytes& data) override { return true; }
+    bool Deserialize(const bytes& data) override { (void)data; return true; }
 };
 
 /**
@@ -259,7 +259,7 @@ class MempoolMessage : public NetworkMessage {
 public:
     NetMsgType GetType() const override { return NetMsgType::MEMPOOL; }
     bytes Serialize() const override { return bytes(); }
-    bool Deserialize(const bytes& data) override { return true; }
+    bool Deserialize(const bytes& data) override { (void)data; return true; }
 };
 
 /**

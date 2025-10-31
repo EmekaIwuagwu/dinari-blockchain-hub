@@ -8,15 +8,15 @@
 
 namespace dinari {
 
-// TransactionBuilder implementation
+// WalletTransactionBuilder implementation
 
-TransactionBuilder::TransactionBuilder()
+WalletTransactionBuilder::WalletTransactionBuilder()
     : feeRate(10)  // Default 10 satoshis/byte
     , totalInput(0)
     , totalOutput(0) {
 }
 
-TransactionBuilder& TransactionBuilder::AddInput(const OutPoint& outpoint, const TxOut& prevOut) {
+WalletTransactionBuilder& WalletTransactionBuilder::AddInput(const OutPoint& outpoint, const TxOut& prevOut) {
     Input input;
     input.outpoint = outpoint;
     input.prevOut = prevOut;
@@ -27,7 +27,7 @@ TransactionBuilder& TransactionBuilder::AddInput(const OutPoint& outpoint, const
     return *this;
 }
 
-TransactionBuilder& TransactionBuilder::AddOutput(const Address& addr, Amount value) {
+WalletTransactionBuilder& WalletTransactionBuilder::AddOutput(const Address& addr, Amount value) {
     TxOut output;
     output.value = value;
     output.scriptPubKey = AddressGenerator::GenerateScriptPubKey(addr);
@@ -38,17 +38,17 @@ TransactionBuilder& TransactionBuilder::AddOutput(const Address& addr, Amount va
     return *this;
 }
 
-TransactionBuilder& TransactionBuilder::SetChangeAddress(const Address& addr) {
+WalletTransactionBuilder& WalletTransactionBuilder::SetChangeAddress(const Address& addr) {
     changeAddress = addr;
     return *this;
 }
 
-TransactionBuilder& TransactionBuilder::SetFeeRate(Amount rate) {
+WalletTransactionBuilder& WalletTransactionBuilder::SetFeeRate(Amount rate) {
     feeRate = rate;
     return *this;
 }
 
-bool TransactionBuilder::Build(Transaction& tx, Amount& fee) {
+bool WalletTransactionBuilder::Build(Transaction& tx, Amount& fee) {
     if (inputs.empty()) {
         LOG_ERROR("TxBuilder", "No inputs");
         return false;
@@ -83,32 +83,32 @@ bool TransactionBuilder::Build(Transaction& tx, Amount& fee) {
         TxIn txin;
         txin.prevOut = input.outpoint;
         txin.sequence = 0xFFFFFFFF;
-        tx.vin.push_back(txin);
+        tx.inputs.push_back(txin);
     }
 
     // Add outputs
-    tx.vout = outputs;
+    tx.outputs = outputs;
 
     // Add change output if significant
     if (change >= DUST_THRESHOLD && changeAddress.IsValid()) {
         TxOut changeOut;
         changeOut.value = change;
         changeOut.scriptPubKey = AddressGenerator::GenerateScriptPubKey(changeAddress);
-        tx.vout.push_back(changeOut);
+        tx.outputs.push_back(changeOut);
     } else if (change > 0) {
         // Add to fee
         fee += change;
     }
 
-    LOG_INFO("TxBuilder", "Built transaction: " + std::to_string(tx.vin.size()) +
-             " inputs, " + std::to_string(tx.vout.size()) + " outputs, fee: " +
+    LOG_INFO("TxBuilder", "Built transaction: " + std::to_string(tx.inputs.size()) +
+             " inputs, " + std::to_string(tx.outputs.size()) + " outputs, fee: " +
              std::to_string(fee));
 
     return true;
 }
 
-bool TransactionBuilder::Sign(Transaction& tx, const KeyStore& keystore) {
-    for (size_t i = 0; i < tx.vin.size(); ++i) {
+bool WalletTransactionBuilder::Sign(Transaction& tx, const KeyStore& keystore) {
+    for (size_t i = 0; i < tx.inputs.size(); ++i) {
         if (i >= inputs.size()) {
             LOG_ERROR("TxBuilder", "Input index out of range");
             return false;
@@ -150,7 +150,7 @@ bool TransactionBuilder::Sign(Transaction& tx, const KeyStore& keystore) {
         scriptSig.push_back(static_cast<byte>(key.pubKey.size()));
         scriptSig.insert(scriptSig.end(), key.pubKey.begin(), key.pubKey.end());
 
-        tx.vin[i].scriptSig = scriptSig;
+        tx.inputs[i].scriptSig = scriptSig;
     }
 
     LOG_INFO("TxBuilder", "Transaction signed");
@@ -158,11 +158,11 @@ bool TransactionBuilder::Sign(Transaction& tx, const KeyStore& keystore) {
     return true;
 }
 
-Amount TransactionBuilder::EstimateFee(size_t txSize) const {
+Amount WalletTransactionBuilder::EstimateFee(size_t txSize) const {
     return txSize * feeRate;
 }
 
-size_t TransactionBuilder::EstimateTransactionSize() const {
+size_t WalletTransactionBuilder::EstimateTransactionSize() const {
     // Rough estimation:
     // Version: 4 bytes
     // Input count: 1 byte (varint)
@@ -179,7 +179,7 @@ size_t TransactionBuilder::EstimateTransactionSize() const {
     return size;
 }
 
-void TransactionBuilder::Clear() {
+void WalletTransactionBuilder::Clear() {
     inputs.clear();
     outputs.clear();
     changeAddress = Address();
@@ -527,7 +527,7 @@ bool Wallet::CreateTransaction(const std::map<Address, Amount>& recipients,
     }
 
     // Build transaction
-    TransactionBuilder builder;
+    WalletTransactionBuilder builder;
     builder.SetFeeRate(feeRate);
 
     // Add inputs
@@ -574,11 +574,11 @@ bool Wallet::SignTransaction(Transaction& tx) {
         return false;
     }
 
-    TransactionBuilder builder;
+    WalletTransactionBuilder builder;
 
     // Build scriptSigs for inputs
-    for (size_t i = 0; i < tx.vin.size(); ++i) {
-        const TxIn& txin = tx.vin[i];
+    for (size_t i = 0; i < tx.inputs.size(); ++i) {
+        const TxIn& txin = tx.inputs[i];
 
         // Find previous output
         auto it = walletUTXOs.find(txin.prevOut);
@@ -591,7 +591,7 @@ bool Wallet::SignTransaction(Transaction& tx) {
     }
 
     // Copy outputs
-    for (const auto& txout : tx.vout) {
+    for (const auto& txout : tx.outputs) {
         Address addr;
         if (AddressGenerator::ExtractAddress(txout.scriptPubKey, addr)) {
             builder.AddOutput(addr, txout.value);
@@ -603,7 +603,7 @@ bool Wallet::SignTransaction(Transaction& tx) {
         return false;
     }
 
-    LOG_INFO("Wallet", "Signed transaction: " + tx.GetHash().ToHex());
+    LOG_INFO("Wallet", "Signed transaction: " + crypto::Hash::ToHex(tx.GetHash()));
 
     return true;
 }
@@ -645,14 +645,14 @@ bool Wallet::ProcessTransaction(const Transaction& tx, BlockHeight height) {
     std::lock_guard<std::mutex> lock(mutex);
 
     // Check outputs for payments to our addresses
-    for (size_t i = 0; i < tx.vout.size(); ++i) {
-        const TxOut& txout = tx.vout[i];
+    for (size_t i = 0; i < tx.outputs.size(); ++i) {
+        const TxOut& txout = tx.outputs[i];
 
         Address addr;
         if (AddressGenerator::ExtractAddress(txout.scriptPubKey, addr) && IsMine(addr)) {
             OutPoint outpoint;
-            outpoint.hash = tx.GetHash();
-            outpoint.n = static_cast<uint32_t>(i);
+            outpoint.txHash = tx.GetHash();
+            outpoint.index = static_cast<uint32_t>(i);
 
             AddUTXO(outpoint, txout, height);
 
@@ -662,7 +662,7 @@ bool Wallet::ProcessTransaction(const Transaction& tx, BlockHeight height) {
     }
 
     // Remove spent outputs
-    for (const TxIn& txin : tx.vin) {
+    for (const TxIn& txin : tx.inputs) {
         if (walletUTXOs.count(txin.prevOut) > 0) {
             RemoveUTXO(txin.prevOut);
 

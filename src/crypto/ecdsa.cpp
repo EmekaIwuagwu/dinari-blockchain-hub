@@ -382,6 +382,11 @@ Hash256 ECDSA::ECDH(const Hash256& privkey, const bytes& peerPubkey) {
 }
 
 bytes ECDSA::RecoverPublicKey(const Hash256& hash, const bytes& signature, int recoveryId) {
+    // Suppress unused parameter warnings for stub function
+    (void)hash;
+    (void)signature;
+    (void)recoveryId;
+
     // Recovery not fully implemented in basic OpenSSL
     // For production, use libsecp256k1 which has better recovery support
     throw std::runtime_error("Public key recovery not implemented. Use libsecp256k1 for this feature.");

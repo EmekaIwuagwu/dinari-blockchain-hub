@@ -186,6 +186,21 @@ bytes Hash::PBKDF2_SHA256(const std::string& password, const bytes& salt,
     return result;
 }
 
+// PBKDF2-SHA512 implementation (for BIP39)
+bytes Hash::PBKDF2_SHA512(const bytes& password, const bytes& salt,
+                          int iterations, size_t keylen) {
+    bytes result(keylen);
+
+    if (PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(password.data()), password.size(),
+                          salt.data(), salt.size(),
+                          iterations, EVP_sha512(),
+                          keylen, result.data()) != 1) {
+        throw std::runtime_error("PBKDF2-SHA512 failed");
+    }
+
+    return result;
+}
+
 // Scrypt implementation (basic version - production should use libscrypt)
 bytes Hash::Scrypt(const std::string& password, const bytes& salt,
                    uint64_t N, uint32_t r, uint32_t p, size_t keylen) {
