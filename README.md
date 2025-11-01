@@ -24,7 +24,7 @@
 
 - **Blockchain Name:** Dinari Blockchain
 - **Native Token:** Dinari (DNT)
-- **Initial Supply:** 700 Trillion DNT (700,000,000,000,000)
+- **Initial Supply:** 10 Billion DNT (10,000,000,000)
 - **Address Prefix:** `D` (e.g., D1a2b3c4...)
 - **Consensus:** Proof of Work (PoW) - SHA-256
 - **Block Time:** 10 minutes (600 seconds)

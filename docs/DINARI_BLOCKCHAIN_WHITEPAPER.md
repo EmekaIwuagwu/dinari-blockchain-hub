@@ -81,7 +81,7 @@
 | **Blockchain Type** | Layer-1 Proof-of-Work (PoW) |
 | **Consensus Algorithm** | SHA-256 Double Hashing |
 | **Native Token** | DNT (Dinari Token) |
-| **Total Supply** | 700 Trillion DNT (Fixed) |
+| **Total Supply** | 10 Billion DNT (Fixed) |
 | **Decimal Places** | 8 (Satoshi-style) |
 | **Block Time** | ~10 minutes (600 seconds) |
 | **Block Reward** | 50 DNT (halvings every 210,000 blocks) |
@@ -89,30 +89,16 @@
 | **Security Audit** | ✅ Complete (8/8 vulnerabilities fixed) |
 | **Database** | ✅ LevelDB persistence implemented |
 
-### Token Valuation & Pricing
+### Token Supply
 
 | **Metric** | **Value** |
 |------------|-----------|
-| **Initial Token Price (ITP)** | $0.0000001 USD per DNT |
-| **Market Cap at ITP** | $70,000,000 USD (70 million) |
-| **Circulating Supply** | 700 Trillion DNT |
+| **Initial Supply** | 10 Billion DNT |
+| **Circulating Supply** | 10 Billion DNT |
 | **Token Standard** | Native (UTXO-based) |
 | **Smallest Unit** | 1 satoshi = 0.00000001 DNT |
 
-**Exchange Rate Examples:**
-- 1 DNT = $0.0000001 USD
-- 10,000 DNT = $0.001 USD (1 cent per 10K DNT)
-- 1,000,000 DNT = $0.10 USD
-- 10,000,000 DNT = $1.00 USD
-- 1,000,000,000 DNT = $100 USD
-
-**Investment Tiers:**
-- **Micro**: $100 → 1 Billion DNT
-- **Small**: $1,000 → 10 Billion DNT
-- **Medium**: $10,000 → 100 Billion DNT
-- **Large**: $100,000 → 1 Trillion DNT
-
-**Note:** *Pricing is indicative for initial token offering. Actual market price will be determined by supply and demand on exchanges post-launch. The conservative initial pricing ($0.0000001 per DNT) provides significant upside potential for early investors.*
+**Note:** *Token pricing will be determined by market forces through supply and demand on exchanges after launch. The fixed supply cap ensures scarcity and predictable economics.*
 
 ### Key Highlights
 
@@ -191,7 +177,7 @@ The global blockchain market is projected to reach **$163.24 billion by 2029** (
 
 1. **Technology Maturity**: Fully implemented and tested codebase (11/11 phases complete)
 2. **Security First**: Comprehensive security audit with all vulnerabilities fixed
-3. **Clear Economics**: Fixed supply (700 trillion DNT), halving schedule, predictable inflation
+3. **Clear Economics**: Fixed supply (10 billion DNT), halving schedule, predictable inflation
 4. **Cloud-Ready**: Native Docker and Azure support for instant deployment
 5. **Developer-Friendly**: Complete API documentation, Postman collection, setup guides
 
@@ -708,13 +694,13 @@ The Proof of Work system provides these **mathematical guarantees**:
 | Parameter | Value | Notes |
 |-----------|-------|-------|
 | **Token Name** | Dinari (DNT) | |
-| **Total Supply** | 700 Trillion DNT | Fixed maximum |
+| **Total Supply** | 10 Billion DNT | Fixed maximum |
 | **Smallest Unit** | 1 satoshi = 0.00000001 DNT | 8 decimal places |
 | **Initial Block Reward** | 50 DNT | |
 | **Halving Schedule** | Every 210,000 blocks (~4 years) | |
 | **Final Halving** | After ~32 halvings | |
 | **Emission Curve** | Exponentially decreasing | |
-| **Genesis Allocation** | 700 Trillion DNT in genesis block | Transparent pre-mine |
+| **Genesis Allocation** | 10 Billion DNT in genesis block | Transparent pre-mine |
 
 ### Cryptographic Standards
 
@@ -980,10 +966,10 @@ The Proof of Work system provides these **mathematical guarantees**:
 
 ### Supply Model
 
-**Total Supply:** 700 Trillion DNT (fixed maximum)
+**Total Supply:** 10 Billion DNT (fixed maximum)
 
 **Initial Distribution:**
-- Genesis block: 700 Trillion DNT
+- Genesis block: 10 Billion DNT
 - Transparent pre-mine (publicly auditable)
 - Clear token allocation
 
@@ -1013,8 +999,8 @@ Year 8-12:  12.5 DNT/block →  ~6.5M DNT added
 **Long-Term Supply:**
 ```
 Total new issuance from mining: ~50M DNT over 100+ years
-Genesis allocation: 700 Trillion DNT
-True maximum supply: 700 Trillion + ~50M DNT
+Genesis allocation: 10 Billion DNT
+True maximum supply: 10 Billion + ~50M DNT
 ```
 
 ### Economic Incentives
@@ -1057,22 +1043,22 @@ Honest Mining:
 ```
 Year  | Reward   | Annual Issuance | Inflation Rate*
 ──────|──────────|─────────────────|────────────────
-1     | 50 DNT   | 2,628,000 DNT   | 0.000375%
-2     | 50 DNT   | 2,628,000 DNT   | 0.000375%
-3     | 50 DNT   | 2,628,000 DNT   | 0.000375%
-4     | 50 DNT   | 2,628,000 DNT   | 0.000375%
-5     | 25 DNT   | 1,314,000 DNT   | 0.000188%
+1     | 50 DNT   | 2,628,000 DNT   | 0.026%
+2     | 50 DNT   | 2,628,000 DNT   | 0.026%
+3     | 50 DNT   | 2,628,000 DNT   | 0.026%
+4     | 50 DNT   | 2,628,000 DNT   | 0.026%
+5     | 25 DNT   | 1,314,000 DNT   | 0.013%
 ...   | ...      | ...             | ...
 100+  | ~0 DNT   | 0 DNT           | 0%
 
-*Relative to 700 Trillion genesis supply
+*Relative to 10 Billion genesis supply
 ```
 
-**Inflation becomes negligible due to massive genesis supply.**
+**Inflation starts higher but decreases exponentially with halvings.**
 
 ### Value Proposition
 
-1. **Fixed Supply**: 700 Trillion DNT maximum
+1. **Fixed Supply**: 10 Billion DNT maximum
 2. **Predictable Emission**: Halving every 4 years
 3. **Decreasing Inflation**: Exponentially declining
 4. **Transparent**: All economics visible on-chain
@@ -1308,7 +1294,7 @@ All core development phases are complete:
 - Global accessibility
 
 **Store of Value:**
-- Fixed supply (700 Trillion DNT)
+- Fixed supply (10 Billion DNT)
 - Predictable inflation schedule
 - Cryptographic security
 - Censorship resistance
@@ -1581,7 +1567,7 @@ All core development phases are complete:
 - ✅ Multiple security layers
 
 **3. Clear Economics:**
-- ✅ Fixed supply (700 Trillion DNT)
+- ✅ Fixed supply (10 Billion DNT)
 - ✅ Predictable halving schedule
 - ✅ Transparent distribution
 - ✅ Sustainable mining incentives
