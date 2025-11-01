@@ -9,15 +9,15 @@
     "message": "Dinari Blockchain - Building the Future of Decentralized Finance",
     "output": {
       "address": "D1DinariGenesisBlockAddress123456789",
-      "amount": 700000000000000,
+      "amount": 10000000000,
       "amount_unit": "DNT",
-      "amount_description": "700 Trillion DNT initial supply"
+      "amount_description": "10 Billion DNT initial supply"
     }
   },
   "merkle_root": "0000000000000000000000000000000000000000000000000000000000000000",
   "hash": "0000000000000000000000000000000000000000000000000000000000000000",
   "notes": [
-    "The genesis block contains the entire initial supply of 700 trillion DNT",
+    "The genesis block contains the entire initial supply of 10 billion DNT",
     "This supply will be distributed according to the tokenomics plan",
     "Block reward halving occurs every 210,000 blocks",
     "Target block time is 10 minutes (600 seconds)",
